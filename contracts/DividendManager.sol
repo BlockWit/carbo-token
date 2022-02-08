@@ -64,17 +64,17 @@ contract DividendManager is Ownable {
 
     function includeInDividends(address account) public onlyOwner {
         excluded[account] = false;
-        _decreaseDividendCorrection(account, balanceOf(account));
+        _calculateAndDecreaseDividendCorrection(account, balanceOf(account));
     }
 
     function excludeFromDividends(address account) public onlyOwner {
         excluded[account] = true;
-        _increaseDividendCorrection(account, balanceOf(account));
+        _calculateAndIncreaseDividendCorrection(account, balanceOf(account));
     }
 
     function handleTransfer(address from, address to, uint256 value) external onlyOwner {
         _transfer(from, to, value);
-        int256 _magCorrection = magnifiedDividendPerShare.mul(value).toInt256Safe();
+        int256 _magCorrection = _calculateDividendCorrection(value);
         if (excluded[from]) {
             _totalSupply += value;
         }
@@ -88,14 +88,18 @@ contract DividendManager is Ownable {
     function _mint(address account, uint256 amount) internal {
         _totalSupply += amount;
         _balances[account] += amount;
-        _decreaseDividendCorrection(account, amount);
+        _calculateAndDecreaseDividendCorrection(account, amount);
     }
 
     function _burn(address account, uint256 amount) internal {
         uint256 accountBalance = _balances[account];
         _balances[account] = accountBalance - amount;
         _totalSupply -= amount;
-        _increaseDividendCorrection(account, amount);
+        _calculateAndIncreaseDividendCorrection(account, amount);
+    }
+
+    function _calculateDividendCorrection(uint256 value) internal pure returns (int256) {
+        return magnifiedDividendPerShare.mul(value).toInt256Safe();
     }
 
     function _increaseDividendCorrection(address account, int256 value) internal {
@@ -104,6 +108,14 @@ contract DividendManager is Ownable {
 
     function _decreaseDividendCorrection(address account, int256 value) internal {
         magnifiedDividendCorrections[account] = magnifiedDividendCorrections[account].sub(value);
+    }
+
+    function _calculateAndIncreaseDividendCorrection(address account, uint256 value) internal {
+        _increaseDividendCorrection(account, _calculateDividendCorrection(value));
+    }
+
+    function _calculateAndDecreaseDividendCorrection(address account, uint256 value) internal {
+        _decreaseDividendCorrection(account, _calculateDividendCorrection(value));
     }
 
     //------------------------------------------------------------------------------------------------------------------
