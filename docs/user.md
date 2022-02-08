@@ -33,17 +33,17 @@ There You can buy BNB using Visa or MasterCard bank cards.
 During the purchase you might need the wallet address created on the previous step.
 
 ## Buying tokens
-In order to buy tokens you need to send at least 23.786 BNB to the current crowdsale contract address: [0xD076366c8DbCfaba1E8F672D66234CD060A5fC71](https://bscscan.com/address/0xD076366c8DbCfaba1E8F672D66234CD060A5fC71)
+In order to buy tokens you need to send at least 23.786 BNB to the current crowdsale contract address: [](https://bscscan.com/address/)
 
 Before sending, make sure that:
-1. You send at least 23.786 BNB (depending upon the configuration of the sales contract, this value may differ. See `minInvesmentLimit` of the corresponding sales stage [here](https://bscscan.com/address/0xD076366c8DbCfaba1E8F672D66234CD060A5fC71#readContract)).
+1. You send at least 23.786 BNB (depending upon the configuration of the sales contract, this value may differ. See `minInvesmentLimit` of the corresponding sales stage [here](https://bscscan.com/address/#readContract)).
 2. The amount of `gas` is greater than 250 000.
 3. `Gas price` — at least 5 Gwei. Transactions with less gas price will take longer. Gas price may change over time.
 
 If you are using Metamask, you need to do the following:
 1. Open your Metamask wallet
 
-2. Click `Send Transaction`. Select `amount` to send and sale contract [address](https://bscscan.com/address/0xD076366c8DbCfaba1E8F672D66234CD060A5fC71). You can leave the `gas price` as is or specify your own.
+2. Click `Send Transaction`. Select `amount` to send and sale contract [address](https://bscscan.com/address/). You can leave the `gas price` as is or specify your own.
     <details><summary>Click to see screenshot</summary>
 
     ![buying_tokens_01](images/buying_tokens_01.png)
@@ -59,7 +59,7 @@ If you are using Metamask, you need to do the following:
 
 ## Managing tokens
 To add tokens to your wallet, you need the following information:
-* Token Contract Address - **[0x46F275321107d7c49cF80216371AbF1a1599c36F](https://bscscan.com/token/0x46F275321107d7c49cF80216371AbF1a1599c36F)**
+* Token Contract Address - **[wip](https://bscscan.com/token/)**
 * Token Symbol — **CARBO**
 * Decimals — **18**
 1. Open your MetaMask wallet, navigate to "Assets" tab and click "Add Token" button.
@@ -105,13 +105,13 @@ At any time you can find out your balance and the amount already withdrawn from 
 
 </details><br>
 
-1. Go to the [Read Contract](https://bscscan.com/address/0x4D1CeBBDb249576988f915D4a528630240ac6906#readContract) tab of the sale smart contract.
+1. Go to the [Read Contract](https://bscscan.com/address/#readContract) tab of the sale smart contract.
 2. Find the section `Balances`
 3. Enter the number of the stage of the sale during which the purchase was made and enter your address in the BSC network.
 4. Click the `Query` button
 
 ## AccountInfo
-[VestingWallet](https://bscscan.com/address/0x4D1CeBBDb249576988f915D4a528630240ac6906#code) has the method called `getAccountInfo` to make it easier for the user to obtain information on the vested amount.  
+[VestingWallet](https://bscscan.com/address/#code) has the method called `getAccountInfo` to make it easier for the user to obtain information on the vested amount.  
 <details><summary>Click to see screenshot</summary>
 
 ![balances](images/obtaining_account_info.png)
@@ -126,8 +126,8 @@ At any time you can find out your balance and the amount already withdrawn from 
    * the number of tokens available for withdrawal at the moment
 
 ## Withdrawal
-In order to receive vested tokens, You need to call the `withdraw` method of the [VestingWallet](https://bscscan.com/address/0x4D1CeBBDb249576988f915D4a528630240ac6906#code) smart contract.
-1. Go to the [Write Contract](https://bscscan.com/address/0x4D1CeBBDb249576988f915D4a528630240ac6906#writeContract) tab of the sale smart contract.
+In order to receive vested tokens, You need to call the `withdraw` method of the [VestingWallet](https://bscscan.com/address/#code) smart contract.
+1. Go to the [Write Contract](https://bscscan.com/address/#writeContract) tab of the sale smart contract.
 2. Click `Connect to Web3` button to be able to call the smart contract methods using the bscscan interface.
 3. Scroll down to the `withdraw` section.
     <details><summary>Click to see screenshot</summary>
