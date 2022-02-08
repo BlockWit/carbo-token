@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../FullMath.sol";
+import "../lib/FullMath.sol";
 
 contract FullmathMock {
 
