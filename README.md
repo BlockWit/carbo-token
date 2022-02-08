@@ -6,7 +6,7 @@
 * _[Name](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5111-name)_            : CARBO
 * _[Ticker](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5112-symbol)_          : CARBO
 * _[Decimals](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5113-decimals)_        : 18
-* _Emission_        : One-time, 1000 000 000 tokens
+* _Emission_        : One-time, 500 000 000 tokens
 * _Fiat dependency_ : No
 * _Token locks_     : Yes
 
