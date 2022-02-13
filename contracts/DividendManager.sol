@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./lib/SafeMathUint.sol";
 import "./lib/SafeMathInt.sol";
 import "./interfaces/IDividendManager.sol";
+import "./RecoverableFunds.sol";
 
-contract DividendManager is IDividendManager, Ownable {
+contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     using SafeMath for uint256;
     using SafeMathUint for uint256;
     using SafeMathInt for int256;
@@ -70,8 +71,12 @@ contract DividendManager is IDividendManager, Ownable {
     }
 
     function accumulativeDividendOf(address account, uint256 tOwned, uint256 rOwned) public view override returns(uint256) {
-        return magnifiedDividendPerShare.mul(rOwned).toInt256Safe()
-        .add(magnifiedDividendCorrections[account]).toUint256Safe() / magnitude;
+        return magnifiedDividendPerShare
+        .mul(rOwned)
+        .toInt256Safe()
+        .add(magnifiedDividendCorrections[account])
+        .toUint256Safe()
+        .div(magnitude);
     }
 
     function includeInDividends(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
