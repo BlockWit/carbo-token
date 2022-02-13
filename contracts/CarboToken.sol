@@ -358,8 +358,9 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         dividendManager.distributeDividends();
     }
 
-    function withdrawDividend(address account) public {
-        dividendManager.withdrawDividend(_msgSender(), _tOwned[account], _rOwned[account]);
+    function withdrawDividend() public {
+        address account = _msgSender();
+        dividendManager.withdrawDividend(account, _tOwned[account], _rOwned[account]);
     }
 
     function withdrawableDividendOf(address account) public view returns (uint256) {
@@ -382,13 +383,13 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         dividendManager.excludeFromDividends(account, _tOwned[account], _rOwned[account]);
     }
 
-    function _reflectCallback(uint256 tAmount, uint256 rAmount) private {
+    function _reflectCallback(uint256 tAmount, uint256 rAmount) internal {
         if (address(dividendManager) != address(0x0)) {
             dividendManager.handleReflect(tAmount, rAmount);
         }
     }
 
-    function _transferCallback(address from, address to, uint256 tFromAmount, uint256 tToAmount, uint256 rFromAmount, uint256 rToAmount) private {
+    function _transferCallback(address from, address to, uint256 tFromAmount, uint256 tToAmount, uint256 rFromAmount, uint256 rToAmount) internal {
         if (address(dividendManager) != address(0x0)) {
             dividendManager.handleTransfer(from, to, tFromAmount, tToAmount, rFromAmount, rToAmount);
         }
