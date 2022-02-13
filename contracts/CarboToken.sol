@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./RecoverableFunds.sol";
 import "./WithCallback.sol";
+import "./interfaces/IDividendManager.sol";
 
 contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
 
@@ -222,7 +223,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         require(!_isExcluded[sender], "Excluded addresses cannot call this function");
         uint256 rAmount = _getRAmount(tAmount, _getRate());
         _rOwned[sender] = _rOwned[sender].sub(rAmount);
-        _reflect(rAmount, tAmount);
+        _reflect(tAmount, rAmount);
     }
 
     function reflectionFromToken(uint256 tAmount) public view returns (uint256) {
@@ -236,9 +237,10 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         return rAmount.div(currentRate);
     }
 
-    function _reflect(uint256 rAmount, uint256 tAmount) private {
+    function _reflect(uint256 tAmount, uint256 rAmount) private {
         _rTotal = _rTotal.sub(rAmount);
         _tFeeTotal = _tFeeTotal.add(tAmount);
+        _reflectCallback(tAmount, rAmount);
     }
 
     function _getCurrentSupply() private view returns (uint256, uint256) {
@@ -312,11 +314,6 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         }
     }
 
-    function _decreaseTotalSupply(uint256 tAmount, uint256 rAmount) private {
-        _tTotal = _tTotal.sub(tAmount);
-        _rTotal = _rTotal.sub(rAmount);
-    }
-
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
@@ -327,7 +324,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         emit Transfer(sender, recipient, t.transfer);
         if (t.sum != t.transfer) {
             if (t.rfi > 0) {
-                _reflect(r.rfi, t.rfi);
+                _reflect(t.rfi, r.rfi);
             }
             if (t.dividends > 0) {
                 _increaseBalance(_dividendsAddress, t.dividends, r.dividends);
@@ -343,7 +340,58 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
             }
             emit FeeTaken(t.rfi, t.dividends, t.buyback, t.treasury, t.liquidity);
         }
-        _transferCallback(sender, recipient, amount);
+        _transferCallback(sender, recipient, t.sum, t.transfer, r.sum, r.transfer);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // DIVIDENDS
+    // -----------------------------------------------------------------------------------------------------------------
+
+    IDividendManager dividendManager;
+
+    function setDividendManager(address _dividendManager) public onlyOwner {
+        dividendManager = IDividendManager(_dividendManager);
+        dividendManager.setTotalSupply(_tTotal, _rTotal);
+    }
+
+    function distributeDividends() public {
+        dividendManager.distributeDividends();
+    }
+
+    function withdrawDividend(address account) public {
+        dividendManager.withdrawDividend(_msgSender(), _tOwned[account], _rOwned[account]);
+    }
+
+    function withdrawableDividendOf(address account) public view returns (uint256) {
+        return dividendManager.withdrawableDividendOf(account, _tOwned[account], _rOwned[account]);
+    }
+
+    function withdrawnDividendOf(address account) public view returns (uint256) {
+        return dividendManager.withdrawnDividendOf(account);
+    }
+
+    function accumulativeDividendOf(address account) public view returns (uint256) {
+        return dividendManager.accumulativeDividendOf(account, _tOwned[account], _rOwned[account]);
+    }
+
+    function includeInDividends(address account) public onlyOwner {
+        dividendManager.includeInDividends(account, _tOwned[account], _rOwned[account]);
+    }
+
+    function excludeFromDividends(address account) public onlyOwner {
+        dividendManager.excludeFromDividends(account, _tOwned[account], _rOwned[account]);
+    }
+
+    function _reflectCallback(uint256 tAmount, uint256 rAmount) private {
+        if (address(dividendManager) != address(0x0)) {
+            dividendManager.handleReflect(tAmount, rAmount);
+        }
+    }
+
+    function _transferCallback(address from, address to, uint256 tFromAmount, uint256 tToAmount, uint256 rFromAmount, uint256 rToAmount) private {
+        if (address(dividendManager) != address(0x0)) {
+            dividendManager.handleTransfer(from, to, tFromAmount, tToAmount, rFromAmount, rToAmount);
+        }
     }
 
 }
