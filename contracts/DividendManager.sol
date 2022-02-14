@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./lib/SafeMathUint.sol";
 import "./lib/SafeMathInt.sol";
+import "./lib/ABDKMathQuad.sol";
 import "./interfaces/IDividendManager.sol";
 import "./RecoverableFunds.sol";
 
@@ -18,10 +19,9 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
 
     ERC20 public token;
     address public master;
-    uint256 public totalSupply;
-    uint256 constant internal magnitude = 2**128;
-    uint256 internal magnifiedDividendPerShare;
-    mapping(address => int256) internal magnifiedDividendCorrections;
+    bytes16 public totalSupply;
+    bytes16 public dividendPerShare;
+    mapping(address => bytes16) internal dividendCorrections;
     mapping(address => uint256) internal withdrawnDividends;
     mapping(address => bool) internal excluded;
 
@@ -39,26 +39,42 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     }
 
     function setTotalSupply(uint256 tTotal, uint256 rTotal) public override onlyOwner {
-        totalSupply = rTotal;
+        totalSupply = ABDKMathQuad.fromUInt(rTotal);
+    }
+
+    function getTotalSupply() public view returns(uint256)  {
+        return ABDKMathQuad.toUInt(totalSupply);
+    }
+
+    function dividendCorrectionOf(address account) public view returns(uint256)  {
+        return ABDKMathQuad.toUInt(dividendCorrections[account]);
+    }
+
+    function getDividendPerShare() public view returns(uint256)  {
+        return ABDKMathQuad.toUInt(dividendPerShare);
     }
 
     function distributeDividends() public override {
-        require(totalSupply > 0);
+        require(ABDKMathQuad.sign(totalSupply) > 0, "DividendManager: totalSupply should be greater than 0");
         uint256 value = token.balanceOf(address(this));
         if (value > 0) {
-            magnifiedDividendPerShare = magnifiedDividendPerShare.add(
-                value.mul(magnitude) / totalSupply
+            dividendPerShare = ABDKMathQuad.add(
+                dividendPerShare,
+                ABDKMathQuad.div(
+                    ABDKMathQuad.fromUInt(value),
+                    totalSupply
+                )
             );
             emit DividendsDistributed(msg.sender, value);
         }
     }
 
     function withdrawDividend(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
-        uint256 _withdrawableDividend = withdrawableDividendOf(account, tOwned, rOwned);
-        if (_withdrawableDividend > 0) {
-            withdrawnDividends[account] = withdrawnDividends[account].add(_withdrawableDividend);
-            emit DividendWithdrawn(account, _withdrawableDividend);
-            token.transfer(account, _withdrawableDividend);
+        uint256 withdrawableDividend = withdrawableDividendOf(account, tOwned, rOwned);
+        if (withdrawableDividend > 0) {
+            withdrawnDividends[account] = withdrawnDividends[account].add(withdrawableDividend);
+            emit DividendWithdrawn(account, withdrawableDividend);
+            token.transfer(account, withdrawableDividend);
         }
     }
 
@@ -71,16 +87,21 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     }
 
     function accumulativeDividendOf(address account, uint256 tOwned, uint256 rOwned) public view override returns(uint256) {
-        return magnifiedDividendPerShare
-        .mul(rOwned)
-        .toInt256Safe()
-        .add(magnifiedDividendCorrections[account])
-        .toUint256Safe()
-        .div(magnitude);
+        return ABDKMathQuad.toUInt(
+            ABDKMathQuad.add(
+                ABDKMathQuad.mul(dividendPerShare, ABDKMathQuad.fromUInt(rOwned)),
+                dividendCorrections[account]
+            )
+        );
     }
 
     function includeInDividends(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
-        magnifiedDividendCorrections[account] = -magnifiedDividendPerShare.mul(rOwned).toInt256Safe();
+        dividendCorrections[account] = ABDKMathQuad.neg(
+            ABDKMathQuad.mul(
+                dividendPerShare,
+                ABDKMathQuad.fromUInt(rOwned)
+            )
+        );
         excluded[account] = false;
     }
 
@@ -102,42 +123,42 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     }
 
     function handleReflect(uint256 tAmount, uint256 rAmount) public override onlyMaster {
-        totalSupply -= rAmount;
+        totalSupply = ABDKMathQuad.sub(totalSupply, ABDKMathQuad.fromUInt(rAmount));
     }
 
     function _mint(address account, uint256 amount) internal {
-        totalSupply += amount;
-        _calculateAndDecreaseDividendCorrection(account, amount);
-    }
-
-    function _burn(address account, uint256 amount) internal {
-        totalSupply -= amount;
-        _calculateAndIncreaseDividendCorrection(account, amount);
-    }
-
-    function _transfer(address sender, address recipient, uint256 fromAmount, uint256 toAmount) internal {
-        _calculateAndIncreaseDividendCorrection(sender, fromAmount);
-        _calculateAndDecreaseDividendCorrection(recipient, toAmount);
-    }
-
-    function _calculateDividendCorrection(uint256 value) internal view returns (int256) {
-        return magnifiedDividendPerShare.mul(value).toInt256Safe();
-    }
-
-    function _increaseDividendCorrection(address account, int256 value) internal {
-        magnifiedDividendCorrections[account] = magnifiedDividendCorrections[account].add(value);
-    }
-
-    function _decreaseDividendCorrection(address account, int256 value) internal {
-        magnifiedDividendCorrections[account] = magnifiedDividendCorrections[account].sub(value);
-    }
-
-    function _calculateAndIncreaseDividendCorrection(address account, uint256 value) internal {
+        bytes16 value = ABDKMathQuad.fromUInt(amount);
+        totalSupply = ABDKMathQuad.add(totalSupply, value);
         _increaseDividendCorrection(account, _calculateDividendCorrection(value));
     }
 
-    function _calculateAndDecreaseDividendCorrection(address account, uint256 value) internal {
-        _decreaseDividendCorrection(account, _calculateDividendCorrection(value));
+    function _burn(address account, uint256 amount) internal {
+        bytes16 value = ABDKMathQuad.fromUInt(amount);
+        totalSupply = ABDKMathQuad.sub(totalSupply, value);
+        _increaseDividendCorrection(account, _calculateDividendCorrection(value));
+    }
+
+    function _transfer(address sender, address recipient, uint256 fromAmount, uint256 toAmount) internal {
+        if (fromAmount == toAmount) {
+            bytes16 dividendCorrection = _calculateDividendCorrection(ABDKMathQuad.fromUInt(fromAmount));
+            _increaseDividendCorrection(sender, dividendCorrection);
+            _decreaseDividendCorrection(recipient, dividendCorrection);
+        } else {
+            _increaseDividendCorrection(sender, _calculateDividendCorrection(ABDKMathQuad.fromUInt(fromAmount)));
+            _decreaseDividendCorrection(recipient, _calculateDividendCorrection(ABDKMathQuad.fromUInt(toAmount)));
+        }
+    }
+
+    function _calculateDividendCorrection(bytes16 value) internal view returns (bytes16) {
+        return ABDKMathQuad.mul(dividendPerShare, value);
+    }
+
+    function _increaseDividendCorrection(address account, bytes16 value) internal {
+        dividendCorrections[account] = ABDKMathQuad.add(dividendCorrections[account], value);
+    }
+
+    function _decreaseDividendCorrection(address account, bytes16 value) internal {
+        dividendCorrections[account] = ABDKMathQuad.sub(dividendCorrections[account], value);
     }
 
 }
