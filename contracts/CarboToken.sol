@@ -351,7 +351,9 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
 
     function setDividendManager(address _dividendManager) public onlyOwner {
         dividendManager = IDividendManager(_dividendManager);
-        dividendManager.setTotalSupply(_tTotal, _rTotal);
+        if (_dividendManager != address(0x0)) {
+            dividendManager.setTotalSupply(_tTotal, _rTotal);
+        }
     }
 
     function distributeDividends() public {

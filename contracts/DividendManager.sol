@@ -38,7 +38,7 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
         master = _master;
     }
 
-    function setTotalSupply(uint256 tTotal, uint256 rTotal) public override onlyOwner {
+    function setTotalSupply(uint256 tTotal, uint256 rTotal) public override onlyMaster {
         totalSupply = ABDKMathQuad.fromUInt(rTotal);
     }
 
