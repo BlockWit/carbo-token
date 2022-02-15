@@ -124,6 +124,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     address private _treasuryAddress;
     address private _liquidityAddress;
     mapping(address => bool) private _isTaxable;
+    mapping(address => bool) private _isExemptFromTaxation;
 
     function getFees() external view returns (Fees memory, Fees memory) {
         return (_buyFees, _sellFees);
@@ -149,12 +150,12 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         _liquidityAddress = liquidity;
     }
 
-    function includeInTaxable(address account) external onlyOwner {
-        _isTaxable[account] = true;
+    function setTaxable(address account, bool value) external onlyOwner {
+        _isTaxable[account] = value;
     }
 
-    function excludeFromTaxable(address account) external onlyOwner {
-        _isTaxable[account] = false;
+    function setExemptFromTaxation(address account, bool value) external onlyOwner {
+        _isExemptFromTaxation[account] = value;
     }
 
     function _getFeeAmounts(uint256 amount, FeeType feeType) internal view returns (Fees memory) {
@@ -173,7 +174,8 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         return feeAmounts;
     }
 
-    function _getFeeType(address sender, address recipient) private view returns (FeeType) {
+    function _getFeeType(address sender, address recipient) internal view returns (FeeType) {
+        if (_isExemptFromTaxation[sender] || _isExemptFromTaxation[recipient]) return FeeType.NONE;
         if (_isTaxable[sender]) return FeeType.BUY;
         if (_isTaxable[recipient]) return FeeType.SELL;
         return FeeType.NONE;

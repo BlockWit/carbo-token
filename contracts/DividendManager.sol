@@ -57,16 +57,15 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     function distributeDividends() public override {
         require(ABDKMathQuad.sign(totalSupply) > 0, "DividendManager: totalSupply should be greater than 0");
         uint256 value = token.balanceOf(address(this));
-        if (value > 0) {
-            dividendPerShare = ABDKMathQuad.add(
-                dividendPerShare,
-                ABDKMathQuad.div(
-                    ABDKMathQuad.fromUInt(value),
-                    totalSupply
-                )
-            );
-            emit DividendsDistributed(msg.sender, value);
-        }
+        require(value > 0, "DividendManager: distributed amount should be greater than 0");
+        dividendPerShare = ABDKMathQuad.add(
+            dividendPerShare,
+            ABDKMathQuad.div(
+                ABDKMathQuad.fromUInt(value),
+                totalSupply
+            )
+        );
+        emit DividendsDistributed(msg.sender, value);
     }
 
     function withdrawDividend(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
