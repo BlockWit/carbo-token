@@ -124,7 +124,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     address private _treasuryAddress;
     address private _liquidityAddress;
     mapping(address => bool) private _isTaxable;
-    mapping(address => bool) private _isExemptFromTaxation;
+    mapping(address => bool) private _isTaxExempt;
 
     function getFees() external view returns (Fees memory, Fees memory) {
         return (_buyFees, _sellFees);
@@ -151,11 +151,13 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     }
 
     function setTaxable(address account, bool value) external onlyOwner {
+        require(_isTaxable[account] != value, "CarboToken: already set");
         _isTaxable[account] = value;
     }
 
-    function setExemptFromTaxation(address account, bool value) external onlyOwner {
-        _isExemptFromTaxation[account] = value;
+    function setTaxExempt(address account, bool value) external onlyOwner {
+        require(_isTaxExempt[account] != value, "CarboToken: already set");
+        _isTaxExempt[account] = value;
     }
 
     function _getFeeAmounts(uint256 amount, FeeType feeType) internal view returns (Fees memory) {
@@ -175,7 +177,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     }
 
     function _getFeeType(address sender, address recipient) internal view returns (FeeType) {
-        if (_isExemptFromTaxation[sender] || _isExemptFromTaxation[recipient]) return FeeType.NONE;
+        if (_isTaxExempt[sender] || _isTaxExempt[recipient]) return FeeType.NONE;
         if (_isTaxable[sender]) return FeeType.BUY;
         if (_isTaxable[recipient]) return FeeType.SELL;
         return FeeType.NONE;
