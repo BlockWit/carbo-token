@@ -15,7 +15,7 @@ contract DividendSwapper is Ownable, RecoverableFunds {
     IERC20 public carbo;
     IERC20 public busd;
 
-    constructor(address _router, address _busd, address _carbo) public {
+    constructor(address _router, address _busd, address _carbo) {
         carbo = IERC20(_carbo);
         busd = IERC20(_busd);
         uniswapRouter = IUniswapV2Router02(_router);

@@ -3,161 +3,146 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./lib/SafeMathUint.sol";
-import "./lib/SafeMathInt.sol";
+import "./interfaces/ICallbackContract.sol";
+import "./interfaces/ICarboToken.sol";
 import "./lib/ABDKMathQuad.sol";
-import "./interfaces/IDividendManager.sol";
 import "./RecoverableFunds.sol";
 
-contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
-    using SafeMath for uint256;
-    using SafeMathUint for uint256;
-    using SafeMathInt for int256;
+contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
 
-    event DividendsDistributed(address indexed from, uint256 weiAmount);
-    event DividendWithdrawn(address indexed to, uint256 weiAmount);
+    ICarboToken public token;
+    IERC20 public busd;
 
-    IERC20 public token;
-    address public master;
-    bytes16 public totalSupply;
-    bytes16 public dividendPerShare;
-    mapping(address => bytes16) internal dividendCorrections;
-    mapping(address => uint256) internal withdrawnDividends;
-    mapping(address => bool) internal excluded;
+    bytes16 internal _totalSupply;
+    bytes16 internal _dividendPerShare;
+    mapping(address => bytes16) internal _dividendCorrections;
+    mapping(address => uint256) internal _withdrawnDividends;
+    mapping(address => bool) internal _excluded;
 
-    modifier onlyMaster() {
-        require(master == _msgSender(), "DividendManager: caller is not the master");
+    event DividendsDistributed(address indexed from, uint256 amount);
+    event DividendWithdrawn(address indexed to, uint256 amount);
+
+    modifier onlyToken() {
+        require(address(token) == _msgSender(), "DividendManager: caller is not the token");
         _;
     }
 
-    function setToken(address _token) public override onlyOwner {
-        token = IERC20(_token);
+    function setToken(address _token) public onlyOwner {
+        token = ICarboToken(_token);
+        _totalSupply = ABDKMathQuad.fromUInt(token.getRTotal());
     }
 
-    function setMaster(address _master) public override onlyOwner {
-        master = _master;
+    function setBUSD(address _busd) public onlyOwner {
+        busd = IERC20(_busd);
     }
 
-    function setTotalSupply(uint256 tTotal, uint256 rTotal) public override onlyMaster {
-        totalSupply = ABDKMathQuad.fromUInt(rTotal);
-    }
-
-    function getTotalSupply() public view returns(uint256)  {
-        return ABDKMathQuad.toUInt(totalSupply);
+    function totalSupply() public view returns(uint256)  {
+        return ABDKMathQuad.toUInt(_totalSupply);
     }
 
     function dividendCorrectionOf(address account) public view returns(uint256)  {
-        return ABDKMathQuad.toUInt(dividendCorrections[account]);
+        return ABDKMathQuad.toUInt(_dividendCorrections[account]);
     }
 
-    function getDividendPerShare() public view returns(uint256)  {
-        return ABDKMathQuad.toUInt(dividendPerShare);
+    function dividendPerShare() public view returns(uint256)  {
+        return ABDKMathQuad.toUInt(_dividendPerShare);
     }
 
-    function distributeDividends() public override {
-        require(ABDKMathQuad.sign(totalSupply) > 0, "DividendManager: totalSupply should be greater than 0");
-        uint256 value = token.balanceOf(address(this));
+    function distributeDividends() public {
+        require(ABDKMathQuad.sign(_totalSupply) > 0, "DividendManager: totalSupply should be greater than 0");
+        uint256 value = busd.balanceOf(address(this));
         require(value > 0, "DividendManager: distributed amount should be greater than 0");
-        dividendPerShare = ABDKMathQuad.add(
-            dividendPerShare,
+        _dividendPerShare = ABDKMathQuad.add(
+            _dividendPerShare,
             ABDKMathQuad.div(
                 ABDKMathQuad.fromUInt(value),
-                totalSupply
+                    _totalSupply
             )
         );
         emit DividendsDistributed(msg.sender, value);
     }
 
-    function withdrawDividend(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
-        uint256 withdrawableDividend = withdrawableDividendOf(account, tOwned, rOwned);
-        if (withdrawableDividend > 0) {
-            withdrawnDividends[account] = withdrawnDividends[account].add(withdrawableDividend);
-            emit DividendWithdrawn(account, withdrawableDividend);
-            token.transfer(account, withdrawableDividend);
-        }
+    function withdrawDividend() public {
+        _withdrawDividend(_msgSender());
     }
 
-    function withdrawableDividendOf(address account, uint256 tOwned, uint256 rOwned) public view override returns(uint256) {
-        return accumulativeDividendOf(account, tOwned, rOwned).sub(withdrawnDividends[account]);
+    function withdrawableDividendOf(address account) public view returns(uint256) {
+        return accumulativeDividendOf(account) - _withdrawnDividends[account];
     }
 
-    function withdrawnDividendOf(address account) public view override returns(uint256) {
-        return withdrawnDividends[account];
+    function withdrawnDividendOf(address account) public view returns(uint256) {
+        return _withdrawnDividends[account];
     }
 
-    function accumulativeDividendOf(address account, uint256 tOwned, uint256 rOwned) public view override returns(uint256) {
+    function accumulativeDividendOf(address account) public view returns(uint256) {
         return ABDKMathQuad.toUInt(
             ABDKMathQuad.add(
-                ABDKMathQuad.mul(dividendPerShare, ABDKMathQuad.fromUInt(rOwned)),
-                dividendCorrections[account]
+                ABDKMathQuad.mul(_dividendPerShare, ABDKMathQuad.fromUInt(token.getROwned(account))),
+                _dividendCorrections[account]
             )
         );
     }
 
-    function includeInDividends(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
-        dividendCorrections[account] = ABDKMathQuad.neg(
+    function includeInDividends(address account) public onlyOwner {
+        _dividendCorrections[account] = ABDKMathQuad.neg(
             ABDKMathQuad.mul(
-                dividendPerShare,
-                ABDKMathQuad.fromUInt(rOwned)
+                _dividendPerShare,
+                ABDKMathQuad.fromUInt(token.getROwned(account))
             )
         );
-        excluded[account] = false;
+        _excluded[account] = false;
+        ABDKMathQuad.add(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
     }
 
-    function excludeFromDividends(address account, uint256 tOwned, uint256 rOwned) public override onlyMaster {
-        withdrawDividend(account, tOwned, rOwned);
-        excluded[account] = true;
+    function excludeFromDividends(address account) public onlyOwner {
+        _withdrawDividend(account);
+        _excluded[account] = true;
+        ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
     }
 
-    function handleTransfer(address from, address to, uint256 tFromAmount, uint256 tToAmount, uint256 rFromAmount, uint256 rToAmount) public override onlyMaster {
-        if (!excluded[from] && !excluded[to]) {
-            _transfer(from, to, rFromAmount, rToAmount);
-        }
-        if (excluded[from] && !excluded[to]) {
-            _mint(to, rToAmount);
-        }
-        if (!excluded[from] && excluded[to]) {
-            _burn(from, rFromAmount);
-        }
+    function reflectCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {
+        _totalSupply = ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(rAmount));
     }
 
-    function handleReflect(uint256 tAmount, uint256 rAmount) public override onlyMaster {
-        totalSupply = ABDKMathQuad.sub(totalSupply, ABDKMathQuad.fromUInt(rAmount));
-    }
-
-    function _mint(address account, uint256 amount) internal {
-        bytes16 value = ABDKMathQuad.fromUInt(amount);
-        totalSupply = ABDKMathQuad.add(totalSupply, value);
-        _increaseDividendCorrection(account, _calculateDividendCorrection(value));
-    }
-
-    function _burn(address account, uint256 amount) internal {
-        bytes16 value = ABDKMathQuad.fromUInt(amount);
-        totalSupply = ABDKMathQuad.sub(totalSupply, value);
-        _increaseDividendCorrection(account, _calculateDividendCorrection(value));
-    }
-
-    function _transfer(address sender, address recipient, uint256 fromAmount, uint256 toAmount) internal {
-        if (fromAmount == toAmount) {
-            bytes16 dividendCorrection = _calculateDividendCorrection(ABDKMathQuad.fromUInt(fromAmount));
-            _increaseDividendCorrection(sender, dividendCorrection);
-            _decreaseDividendCorrection(recipient, dividendCorrection);
+    function increaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {
+        bytes16 value = ABDKMathQuad.fromUInt(rAmount);
+        if (_excluded[account]) {
+            _totalSupply = ABDKMathQuad.sub(_totalSupply, value);
         } else {
-            _increaseDividendCorrection(sender, _calculateDividendCorrection(ABDKMathQuad.fromUInt(fromAmount)));
-            _decreaseDividendCorrection(recipient, _calculateDividendCorrection(ABDKMathQuad.fromUInt(toAmount)));
+            _decreaseDividendCorrection(account, _calculateDividendCorrection(value));
+        }
+    }
+
+    function decreaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {
+        bytes16 value = ABDKMathQuad.fromUInt(rAmount);
+        if (_excluded[account]) {
+            _totalSupply = ABDKMathQuad.add(_totalSupply, value);
+        } else {
+            _increaseDividendCorrection(account, _calculateDividendCorrection(value));
+        }
+    }
+
+    function transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) override external onlyToken {}
+
+    function _withdrawDividend(address account) internal {
+        uint256 withdrawableDividend = withdrawableDividendOf(account);
+        if (withdrawableDividend > 0) {
+            _withdrawnDividends[account] = _withdrawnDividends[account] + withdrawableDividend;
+            busd.transfer(account, withdrawableDividend);
+            emit DividendWithdrawn(account, withdrawableDividend);
         }
     }
 
     function _calculateDividendCorrection(bytes16 value) internal view returns (bytes16) {
-        return ABDKMathQuad.mul(dividendPerShare, value);
+        return ABDKMathQuad.mul(_dividendPerShare, value);
     }
 
     function _increaseDividendCorrection(address account, bytes16 value) internal {
-        dividendCorrections[account] = ABDKMathQuad.add(dividendCorrections[account], value);
+        _dividendCorrections[account] = ABDKMathQuad.add(_dividendCorrections[account], value);
     }
 
     function _decreaseDividendCorrection(address account, bytes16 value) internal {
-        dividendCorrections[account] = ABDKMathQuad.sub(dividendCorrections[account], value);
+        _dividendCorrections[account] = ABDKMathQuad.sub(_dividendCorrections[account], value);
     }
 
 }

@@ -10,27 +10,33 @@ import "./interfaces/ICallbackContract.sol";
  */
 contract WithCallback is Ownable {
 
-    address public registeredCallback = address(0x0);
+    address public callback = address(0x0);
 
-    function registerCallback(address callback) public onlyOwner {
-        registeredCallback = callback;
+    function setCallback(address _callback) external onlyOwner {
+        callback = _callback;
     }
 
-    function unregisterCallback() public onlyOwner {
-        registeredCallback = address(0x0);
-    }
-
-    function _burnCallback(address account, uint256 amount) internal {
-        if (registeredCallback != address(0x0)) {
-            ICallbackContract targetCallback = ICallbackContract(registeredCallback);
-            targetCallback.burnCallback(account, amount);
+    function _reflectCallback(uint256 tAmount, uint256 rAmount) internal {
+        if (callback != address(0x0)) {
+            ICallbackContract(callback).reflectCallback(tAmount, rAmount);
         }
     }
 
-    function _transferCallback(address sender, address recipient, uint256 amount) internal {
-        if (registeredCallback != address(0x0)) {
-            ICallbackContract targetCallback = ICallbackContract(registeredCallback);
-            targetCallback.transferCallback(sender, recipient, amount);
+    function _increaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) internal {
+        if (callback != address(0x0)) {
+            ICallbackContract(callback).increaseBalanceCallback(account, tAmount, rAmount);
+        }
+    }
+
+    function _decreaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) internal {
+        if (callback != address(0x0)) {
+            ICallbackContract(callback).decreaseBalanceCallback(account, tAmount, rAmount);
+        }
+    }
+
+    function _transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) internal {
+        if (callback != address(0x0)) {
+            ICallbackContract(callback).transferCallback(from, to, tFromAmount, rFromAmount, tToAmount, rToAmount);
         }
     }
 
