@@ -18,7 +18,7 @@ describe('ERC20', function () {
 
 describe('RecoverableFunds', function () {
   beforeEach(async function () {
-    this.testedContract = await Token.new([account1], [TOTAL_SUPPLY], { from: owner });
+    this.testedContract = await Token.new({ from: owner });
   });
   shouldBehaveLikeRecoverableFunds(owner, account2, account3);
 });
