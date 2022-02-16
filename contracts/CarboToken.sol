@@ -201,7 +201,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     }
 
     function excludeFromRFI(address account) external onlyOwner {
-        require(!_isExcluded[account], "Account is already excluded");
+        require(!_isExcluded[account], "CarboToken: account is already excluded");
         if (_rOwned[account] > 0) {
             _tOwned[account] = tokenFromReflection(_rOwned[account]);
         }
@@ -210,7 +210,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     }
 
     function includeInRFI(address account) external onlyOwner {
-        require(_isExcluded[account], "Account is already included");
+        require(_isExcluded[account], "CarboToken: account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (_excluded[i] == account) {
                 _excluded[i] = _excluded[_excluded.length - 1];
@@ -224,19 +224,19 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
 
     function reflect(uint256 tAmount) external {
         address sender = _msgSender();
-        require(!_isExcluded[sender], "Excluded addresses cannot call this function");
+        require(!_isExcluded[sender], "CarboToken: excluded addresses cannot call this function");
         uint256 rAmount = _getRAmount(tAmount, _getRate());
         _rOwned[sender] = _rOwned[sender].sub(rAmount);
         _reflect(tAmount, rAmount);
     }
 
     function reflectionFromToken(uint256 tAmount) public view returns (uint256) {
-        require(tAmount <= _tTotal, "Amount must be less than supply");
+        require(tAmount <= _tTotal, "CarboToken: amount must be less than supply");
         return _getRAmount(tAmount, _getRate());
     }
 
     function tokenFromReflection(uint256 rAmount) public view returns (uint256) {
-        require(rAmount <= _rTotal, "Amount must be less than total reflections");
+        require(rAmount <= _rTotal, "CarboToken: amount must be less than total reflections");
         uint256 currentRate = _getRate();
         return rAmount.div(currentRate);
     }

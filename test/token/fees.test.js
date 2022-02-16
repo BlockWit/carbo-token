@@ -5,7 +5,6 @@ const { expect } = require('chai');
 const Token = contract.fromArtifact('CARBOToken');
 
 const [deployer, owner, account1, account2, dividends, buyback, treasury, liquidity, pancake ] = accounts;
-const TOTAL_SUPPLY = ether('500000000');
 
 describe('CARBOToken', async function () {
   let token;
@@ -192,7 +191,7 @@ describe('CARBOToken', async function () {
     expectEvent(receipt, 'Transfer', {from: account1, to: account2, value: tokensToReceive});
     expectEvent(receipt, 'FeeTaken', fees);
     const balancesAfter = await Promise.all([account1, account2, dividends, buyback, treasury, liquidity].map(address => token.balanceOf(address)));
-
+    const [balance1after, balance2after, dividendsBalanceAfter, buybackBalanceAfter, tresuryBalanceAfter, liquidityBalanceAfter] = balancesAfter;
     expect(balance1after).to.be.bignumber.equal(balance1before.sub(tokensToSend));
     expect(balance2after).to.be.bignumber.equal(balance2before.add(tokensToReceive));
     expect(dividendsBalanceAfter).to.be.bignumber.equal(dividendsBalanceBefore.add(fees.dividends));

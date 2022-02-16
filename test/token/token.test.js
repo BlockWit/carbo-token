@@ -1,7 +1,6 @@
-const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
-const { balance, BN, constants, ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
-const { assert, expect } = require('chai');
-const { ZERO_ADDRESS } = constants;
+const { accounts, contract } = require('@openzeppelin/test-environment');
+const { ether } = require('@openzeppelin/test-helpers');
+const { expect } = require('chai');
 const { shouldBehaveLikeERC20 } = require('../behaviors/ERC20.behavior');
 const { shouldBehaveLikeRecoverableFunds } = require('../behaviors/RecoverableFunds.behaviour');
 
