@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./lib/SafeMathUint.sol";
 import "./lib/SafeMathInt.sol";
@@ -17,7 +17,7 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     event DividendsDistributed(address indexed from, uint256 weiAmount);
     event DividendWithdrawn(address indexed to, uint256 weiAmount);
 
-    ERC20 public token;
+    IERC20 public token;
     address public master;
     bytes16 public totalSupply;
     bytes16 public dividendPerShare;
@@ -31,7 +31,7 @@ contract DividendManager is IDividendManager, Ownable, RecoverableFunds {
     }
 
     function setToken(address _token) public override onlyOwner {
-        token = ERC20(_token);
+        token = IERC20(_token);
     }
 
     function setMaster(address _master) public override onlyOwner {
