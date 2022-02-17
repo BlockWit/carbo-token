@@ -4,35 +4,15 @@ pragma solidity ^0.8.0;
 
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./interfaces/ICarboToken.sol";
+import "./interfaces/IDividendManager.sol";
 import "./RecoverableFunds.sol";
 import "./WithCallback.sol";
-import "./interfaces/IDividendManager.sol";
 
-contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
+contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
 
     using SafeMath for uint256;
-
-    struct Amounts {
-        uint256 sum;
-        uint256 transfer;
-        uint256 rfi;
-        uint256 dividends;
-        uint256 buyback;
-        uint256 treasury;
-        uint256 liquidity;
-    }
-
-    struct Fees {
-        uint256 rfi;
-        uint256 dividends;
-        uint256 buyback;
-        uint256 treasury;
-        uint256 liquidity;
-    }
-
-    enum FeeType { BUY, SELL, NONE}
 
     uint16 private constant PERCENT_RATE = 1000;
     uint256 private constant MAX = ~uint256(0);
@@ -45,42 +25,42 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     string private _name = "CLEANCARBON";
     string private _symbol = "CARBO";
 
-    function name() public view returns (string memory) {
+    function name() override public view returns (string memory) {
         return _name;
     }
 
-    function symbol() public view returns (string memory) {
+    function symbol() override public view returns (string memory) {
         return _symbol;
     }
 
-    function decimals() public pure returns (uint8) {
+    function decimals() override public pure returns (uint8) {
         return 18;
     }
 
-    function totalSupply() external view override returns (uint256) {
+    function totalSupply() override external view returns (uint256) {
         return _tTotal;
     }
 
-    function balanceOf(address account) external view override returns (uint256) {
+    function balanceOf(address account) override external view returns (uint256) {
         if (_isExcluded[account]) return _tOwned[account];
         return tokenFromReflection(_rOwned[account]);
     }
 
-    function transfer(address recipient, uint256 amount) external override returns (bool) {
+    function transfer(address recipient, uint256 amount) override external returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
 
-    function allowance(address owner, address spender) external view override returns (uint256) {
+    function allowance(address owner, address spender) override external view returns (uint256) {
         return _allowances[owner][spender];
     }
 
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount) override public returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
 
-    function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) override external returns (bool) {
         _transfer(sender, recipient, amount);
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
@@ -90,12 +70,12 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         return true;
     }
 
-    function increaseAllowance(address spender, uint256 addedValue) external returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) override external returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) override external returns (bool) {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
     unchecked {
@@ -115,8 +95,6 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     // FEES
     // -----------------------------------------------------------------------------------------------------------------
 
-    event FeeTaken(uint256 rfi, uint256 dividends, uint256 buyback, uint256 treasury, uint256 liquidity);
-
     Fees private _buyFees;
     Fees private _sellFees;
     address private _dividendsAddress;
@@ -126,11 +104,11 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
     mapping(address => bool) private _isTaxable;
     mapping(address => bool) private _isTaxExempt;
 
-    function getFees() external view returns (Fees memory, Fees memory) {
+    function getFees() override external view returns (Fees memory, Fees memory) {
         return (_buyFees, _sellFees);
     }
 
-    function setFees(bool isBuy, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) external onlyOwner {
+    function setFees(bool isBuy, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) override external onlyOwner {
         Fees memory fees = Fees(rfi, dividends, buyback, treasury, liquidity);
         if (isBuy) {
             _buyFees = fees;
@@ -139,23 +117,23 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         }
     }
 
-    function getFeeAddresses() external view returns (address, address, address, address) {
+    function getFeeAddresses() override external view returns (address, address, address, address) {
         return (_dividendsAddress, _buybackAddress, _treasuryAddress, _liquidityAddress);
     }
 
-    function setFeeAddresses(address dividends, address buyback, address treasury, address liquidity) external onlyOwner {
+    function setFeeAddresses(address dividends, address buyback, address treasury, address liquidity) override external onlyOwner {
         _dividendsAddress = dividends;
         _buybackAddress = buyback;
         _treasuryAddress = treasury;
         _liquidityAddress = liquidity;
     }
 
-    function setTaxable(address account, bool value) external onlyOwner {
+    function setTaxable(address account, bool value) override external onlyOwner {
         require(_isTaxable[account] != value, "CarboToken: already set");
         _isTaxable[account] = value;
     }
 
-    function setTaxExempt(address account, bool value) external onlyOwner {
+    function setTaxExempt(address account, bool value) override external onlyOwner {
         require(_isTaxExempt[account] != value, "CarboToken: already set");
         _isTaxExempt[account] = value;
     }
@@ -200,15 +178,15 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         emit Transfer(address(0), _msgSender(), _tTotal);
     }
 
-    function getROwned(address account) external view returns (uint256) {
+    function getROwned(address account) override external view returns (uint256) {
         return _rOwned[account];
     }
 
-    function getRTotal() external view returns (uint256) {
+    function getRTotal() override external view returns (uint256) {
         return _rTotal;
     }
 
-    function excludeFromRFI(address account) external onlyOwner {
+    function excludeFromRFI(address account) override external onlyOwner {
         require(!_isExcluded[account], "CarboToken: account is already excluded");
         if (_rOwned[account] > 0) {
             _tOwned[account] = tokenFromReflection(_rOwned[account]);
@@ -217,7 +195,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         _excluded.push(account);
     }
 
-    function includeInRFI(address account) external onlyOwner {
+    function includeInRFI(address account) override external onlyOwner {
         require(_isExcluded[account], "CarboToken: account is already included");
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (_excluded[i] == account) {
@@ -230,7 +208,7 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         }
     }
 
-    function reflect(uint256 tAmount) external {
+    function reflect(uint256 tAmount) override external {
         address account = _msgSender();
         require(!_isExcluded[account], "CarboToken: excluded addresses cannot call this function");
         uint256 rAmount = _getRAmount(tAmount, _getRate());
@@ -238,12 +216,12 @@ contract CarboToken is IERC20, Ownable, RecoverableFunds, WithCallback {
         _reflect(tAmount, rAmount);
     }
 
-    function reflectionFromToken(uint256 tAmount) external view returns (uint256) {
+    function reflectionFromToken(uint256 tAmount) override external view returns (uint256) {
         require(tAmount <= _tTotal, "CarboToken: amount must be less than supply");
         return _getRAmount(tAmount, _getRate());
     }
 
-    function tokenFromReflection(uint256 rAmount) public view returns (uint256) {
+    function tokenFromReflection(uint256 rAmount) override public view returns (uint256) {
         require(rAmount <= _rTotal, "CarboToken: amount must be less than total reflections");
         uint256 currentRate = _getRate();
         return rAmount.div(currentRate);

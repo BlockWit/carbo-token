@@ -2,10 +2,22 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @dev Interface of CarboToken
  */
-interface ICarboToken {
+interface ICarboToken is IERC20 {
+
+    struct Amounts {
+        uint256 sum;
+        uint256 transfer;
+        uint256 rfi;
+        uint256 dividends;
+        uint256 buyback;
+        uint256 treasury;
+        uint256 liquidity;
+    }
 
     struct Fees {
         uint256 rfi;
@@ -15,10 +27,27 @@ interface ICarboToken {
         uint256 liquidity;
     }
 
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function approve(address spender, uint256 amount) external returns (bool);
+    enum FeeType { BUY, SELL, NONE}
+
+    event FeeTaken(uint256 rfi, uint256 dividends, uint256 buyback, uint256 treasury, uint256 liquidity);
+
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+    function decimals() external pure returns (uint8);
+    function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
+    function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
+    function getFees() external view returns (Fees memory, Fees memory);
+    function setFees(bool isBuy, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) external;
+    function getFeeAddresses() external view returns (address, address, address, address);
+    function setFeeAddresses(address dividends, address buyback, address treasury, address liquidity) external;
+    function setTaxable(address account, bool value) external;
+    function setTaxExempt(address account, bool value) external;
     function getROwned(address account) external view returns (uint256);
     function getRTotal() external view returns (uint256);
-    function getFees() external view returns (Fees memory, Fees memory);
+    function excludeFromRFI(address account) external;
+    function includeInRFI(address account) external;
+    function reflect(uint256 tAmount) external;
+    function reflectionFromToken(uint256 tAmount) external view returns (uint256);
+    function tokenFromReflection(uint256 rAmount) external view returns (uint256);
 
 }
