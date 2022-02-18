@@ -48,18 +48,18 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
         return ABDKMathQuad.toUInt(_dividendPerShare);
     }
 
-    function distributeDividends() public {
+    function distributeDividends(uint256 amount) public {
         require(ABDKMathQuad.sign(_totalSupply) > 0, "DividendManager: totalSupply should be greater than 0");
-        uint256 value = busd.balanceOf(address(this));
-        require(value > 0, "DividendManager: distributed amount should be greater than 0");
+        require(amount > 0, "DividendManager: distributed amount should be greater than 0");
+        busd.transferFrom(_msgSender(), address(this), amount);
         _dividendPerShare = ABDKMathQuad.add(
             _dividendPerShare,
             ABDKMathQuad.div(
-                ABDKMathQuad.fromUInt(value),
-                    _totalSupply
+                ABDKMathQuad.fromUInt(amount),
+                _totalSupply
             )
         );
-        emit DividendsDistributed(msg.sender, value);
+        emit DividendsDistributed(msg.sender, amount);
     }
 
     function withdrawDividend() public {

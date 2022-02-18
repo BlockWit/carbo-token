@@ -67,7 +67,8 @@ contract FeeManager is Ownable, RecoverableFunds {
         uint256 buyback = busdReceived * (buyFeeAmounts.buyback + buyFeeAmounts.buyback) / feeTotal;
         uint256 treasury = busdReceived * (buyFeeAmounts.treasury + buyFeeAmounts.treasury) / feeTotal;
         uint256 liquidity = busdReceived - dividends - buyback - treasury;
-        busd.transfer(address(dividendManager), dividends);
+        busd.approve(address(dividendManager), dividends);
+        dividendManager.distributeDividends(dividends);
         busd.transfer(addresses.buyback, buyback);
         busd.transfer(addresses.treasury, treasury);
         busd.transfer(addresses.liquidity, liquidity);

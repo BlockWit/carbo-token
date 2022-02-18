@@ -7,6 +7,6 @@ pragma solidity ^0.8.0;
  */
 interface IDividendManager {
 
-    function distributeDividends() external;
+    function distributeDividends(uint256 amount) external;
 
 }
