@@ -1,6 +1,7 @@
-const { time } = require('@openzeppelin/test-helpers');
+const { BN, time } = require('@openzeppelin/test-helpers');
 const { toBN } = require('web3-utils');
 const { contract } = require('@openzeppelin/test-environment');
+const {expect} = require("chai");
 
 // This decodes logs for a single event type, and returns a decoded object in
 // the same form truffle-contract uses on its receipts
@@ -95,10 +96,16 @@ function fromArtifact (artifact) {
   return contract.fromABI(abi, bytecode);
 }
 
+function expectToBeRoughlyEqual (value1, value2, margin) {
+  if (!BN.isBN(margin)) margin = new BN(margin);
+  return expect(value1).to.be.bignumber.lte(value2.add(margin)).and.to.be.bignumber.gte(value2.sub(margin));
+}
+
 module.exports = {
   fromArtifact,
   getEvents,
   getTransactionCost,
   dateFromNow,
-  increaseDateTo
+  increaseDateTo,
+  expectToBeRoughlyEqual
 };

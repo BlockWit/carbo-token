@@ -83,6 +83,23 @@ describe('CARBOToken', async function () {
     });
   })
 
+  describe('transfer', function () {
+    const amount = ether('123');
+    beforeEach(async function () {
+      await token.transfer(account1, ether('12345'), {from: deployer});
+      await token.transfer(account2, ether('23456'), {from: deployer});
+    })
+    describe('from ususal account to usual account', function () {
+      it('should change sender\'s and recipient\'s balances by exactly the amount sent', async function () {
+        const before = await Promise.all([account1, account2].map(account => token.balanceOf(account)));
+        await token.transfer(account2, amount, {from: account1});
+        const after = await Promise.all([account1, account2].map(account => token.balanceOf(account)));
+        expect(after[0]).to.be.bignumber.equal(before[0].sub(amount));
+        expect(after[1]).to.be.bignumber.equal(before[1].add(amount));
+      })
+    });
+  });
+
   //--------------------------------------------------------------------------------------------------------------------
   // helpers
   //--------------------------------------------------------------------------------------------------------------------
