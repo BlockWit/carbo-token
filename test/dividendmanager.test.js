@@ -32,7 +32,7 @@ describe('DividendManager', async function () {
       token.transfer(account2, balance2, {from: deployer}),
       token.transfer(account3, balance3, {from: deployer})
     ])
-    await token.transfer(owner, await token.balanceOf(deployer), {from: deployer});
+    await token.transfer(owner, (await token.balanceOf(deployer)).divn('2'), {from: deployer});
   });
 
   describe('includeinDividends', function () {
@@ -111,6 +111,19 @@ describe('DividendManager', async function () {
       })
     });
     describe('from ususal account to excluded account', function () {
+      it('should not change dividend amounts', async function () {
+        const accounts = [account1, account2, account3];
+        const accumulativeBefore = await Promise.all(accounts.map(account => dividendManager.accumulativeDividendOf(account)));
+        const withdrawableBefore = await Promise.all(accounts.map(account => dividendManager.withdrawableDividendOf(account)));
+        const withdrawnBefore = await Promise.all(accounts.map(account => dividendManager.withdrawnDividendOf(account)));
+        token.transfer(owner, ether('321'), {from: deployer});
+        const accumulativeAfter = await Promise.all(accounts.map(account => dividendManager.accumulativeDividendOf(account)));
+        const withdrawableAfter = await Promise.all(accounts.map(account => dividendManager.withdrawableDividendOf(account)));
+        const withdrawnAfter = await Promise.all(accounts.map(account => dividendManager.withdrawnDividendOf(account)));
+        accumulativeAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(accumulativeBefore[i]));
+        withdrawableAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(withdrawableBefore[i]));
+        withdrawnAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(withdrawnBefore[i]));
+      })
       it('should decrease totalAmount of DividendManager', async function () {
         const amount = ether('123');
         const before = await dividendManager.totalSupply();
@@ -180,6 +193,19 @@ describe('DividendManager', async function () {
       await token.reflect(balances[0], {from: account1});
       const after = await dividendManager.totalSupply();
       expect(after).to.be.bignumber.lt(before);
+    });
+    it('should increase withdrawable dividend', async function () {
+      const amount = ether('34');
+      const accounts = [account1, account2, account3];
+      await busd.approve(dividendManager.address, amount, {from: owner});
+      await dividendManager.distributeDividends(amount, {from: owner});
+      const before = await Promise.all(accounts.map(account => dividendManager.withdrawableDividendOf(account)));
+      await Promise.all(accounts.map(account => dividendManager.withdrawDividend({from: account})));
+      await token.reflect(ether('321'), {from: owner});
+      await busd.approve(dividendManager.address, amount, {from: owner});
+      await dividendManager.distributeDividends(amount, {from: owner});
+      const after = await Promise.all(accounts.map(account => dividendManager.withdrawableDividendOf(account)));
+      accounts.forEach((acc, i) => expect(after[i]).to.be.bignumber.gt(before[i]));
     });
   });
 
