@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/IVestingWallet.sol";
+import "./lib/Stages.sol";
 import "./RecoverableFunds.sol";
-import "./Stages.sol";
 
 contract CrowdSale is Pausable, RecoverableFunds {
 
@@ -21,6 +21,7 @@ contract CrowdSale is Pausable, RecoverableFunds {
     uint256 public invested;
     uint256 public percentRate = 100;
     address payable public fundraisingWallet;
+    mapping(address => bool) public whitelist;
 
     function pause() public onlyOwner {
         _pause();
@@ -50,8 +51,8 @@ contract CrowdSale is Pausable, RecoverableFunds {
         price = newPrice;
     }
 
-    function setStage(uint256 id,uint256 start, uint256 end, uint256 bonus, uint256 minInvestmentLimit, uint256 hardcapInTokens, uint256 vestingSchedule, uint256 invested, uint256 tokensSold) public onlyOwner returns (bool) {
-        return stages.set(id, Stages.Stage(start, end, bonus, minInvestmentLimit, hardcapInTokens, vestingSchedule, invested, tokensSold));
+    function setStage(uint256 id,uint256 start, uint256 end, uint256 bonus, uint256 minInvestmentLimit, uint256 hardcapInTokens, uint256 vestingSchedule, uint256 invested, uint256 tokensSold, bool whitelist) public onlyOwner returns (bool) {
+        return stages.set(id, Stages.Stage(start, end, bonus, minInvestmentLimit, hardcapInTokens, vestingSchedule, invested, tokensSold, whitelist));
     }
 
     function removeStage(uint256 id) public onlyOwner returns (bool) {
@@ -60,6 +61,18 @@ contract CrowdSale is Pausable, RecoverableFunds {
 
     function getStage(uint256 id) public view returns (Stages.Stage memory) {
         return stages.get(id);
+    }
+
+    function addToWhitelist(address[] calldata accounts) public onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            whitelist[accounts[i]] = true;
+        }
+    }
+
+    function removeFromWhitelist(address[] calldata accounts) public onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            whitelist[accounts[i]] = false;
+        }
     }
 
     function getActiveStageIndex() public view returns (bool, uint256) {
@@ -96,6 +109,9 @@ contract CrowdSale is Pausable, RecoverableFunds {
         (bool hasActiveStage, uint256 stageIndex) = getActiveStageIndex();
         require(hasActiveStage, "CrowdSale: No suitable stage found");
         Stages.Stage storage stage = stages.get(stageIndex);
+        if (stage.whitelist) {
+            require(whitelist[msg.sender], "CrowdSale: Your address is not whitelisted");
+        }
         // check min investment limit
         require(msg.value >= stage.minInvestmentLimit, "CrowdSale: The amount of ETH you sent is too small");
         (uint256 tokens, uint256 investment) = calculateInvestmentAmounts(stage);

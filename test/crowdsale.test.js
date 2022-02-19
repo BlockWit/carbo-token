@@ -7,9 +7,8 @@ const Token = contract.fromArtifact('CARBOToken');
 const Sale = contract.fromArtifact('CrowdSale');
 const Wallet = contract.fromArtifact('VestingWallet');
 
-const [owner, manager, fundraisingWallet, buyer] = accounts;
-const SUPPLY = ether('2500000');
-const PRICE = 4348;
+const [deployer, owner, fundraisingWallet, buyer] = accounts;
+const PRICE = 10000;
 
 describe('CrowdSale', async function () {
   let token;
@@ -20,26 +19,27 @@ describe('CrowdSale', async function () {
   beforeEach(async function () {
     STAGES = [
       { start: await dateFromNow(1), end: await dateFromNow(8), bonus: 500, minInvestmentLimit: ether('0.03'), hardcap: ether('40000') },
-      { start: await dateFromNow(9), end: await dateFromNow(11), bonus: 0, minInvestmentLimit: ether('0.03'), hardcap: ether('60000') }
+      { start: await dateFromNow(9), end: await dateFromNow(16), bonus: 0, minInvestmentLimit: ether('0.03'), hardcap: ether('60000') }
     ];
-    sale = await Sale.new({ from: owner });
-    token = await Token.new([sale.address], [SUPPLY], { from: owner });
-    wallet = await Wallet.new({ from: owner });
+    sale = await Sale.new({ from: deployer });
+    token = await Token.new({ from: deployer });
+    wallet = await Wallet.new({ from: deployer });
     await Promise.all([
-      wallet.setToken(token.address, { from: owner }),
-      sale.setToken(token.address, { from: owner }),
-      sale.setFundraisingWallet(fundraisingWallet, { from: owner }),
-      sale.setVestingWallet(wallet.address, { from: owner }),
-      sale.setPrice(ether(PRICE.toString()), { from: owner })
+      wallet.setToken(token.address, { from: deployer }),
+      sale.setToken(token.address, { from: deployer }),
+      sale.setFundraisingWallet(fundraisingWallet, { from: deployer }),
+      sale.setVestingWallet(wallet.address, { from: deployer }),
+      sale.setPrice(ether(PRICE.toString()), { from: deployer }),
+      token.transfer(sale.address, ether('300000000'), { from: deployer })
     ]);
     await Promise.all(STAGES.map((stage, i) => {
       const { start, end, bonus, minInvestmentLimit, hardcap } = stage;
-      return sale.setStage(i, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, { from: owner });
+      return sale.setStage(i, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, false, { from: deployer });
     }));
     await Promise.all([
-      sale.transferOwnership(manager, { from: owner }),
-      token.transferOwnership(manager, { from: owner }),
-      wallet.transferOwnership(manager, { from: owner })
+      sale.transferOwnership(owner, { from: deployer }),
+      token.transferOwnership(owner, { from: deployer }),
+      wallet.transferOwnership(owner, { from: deployer })
     ]);
   });
 
@@ -81,7 +81,7 @@ describe('CrowdSale', async function () {
     const { start, bonus, hardcap } = STAGES[0];
     await increaseDateTo(start);
     const ethBalanceBefore = new BN(await web3.eth.getBalance(buyer));
-    const ethSent = ether('100');
+    const ethSent = ether('97');
     const { receipt: { gasUsed, transactionHash } } = await sale.sendTransaction({ value: ethSent, from: buyer });
     const { gasPrice } = await web3.eth.getTransaction(transactionHash);
     const ethBalanceAfter = new BN(await web3.eth.getBalance(buyer));
@@ -108,11 +108,37 @@ describe('CrowdSale', async function () {
   });
 
   it('should remove stage by index correctly', async function () {
-    await sale.removeStage(0, { from: manager });
+    await sale.removeStage(0, { from: owner });
     const stage1 = await sale.getStage(1);
     expectStageToBeEqual(stage1, STAGES[1]);
     await expectRevert(sale.getStage(0), 'Stages.Map: nonexistent key');
   });
+
+  describe('whitelist', function () {
+    it('should not be affected by non-owner', async function () {
+      await expectRevert(sale.addToWhitelist([buyer], {from: buyer}), 'Ownable: caller is not the owner');
+      await expectRevert(sale.removeFromWhitelist([buyer], {from: buyer}), 'Ownable: caller is not the owner');
+    });
+    it('should be editable by the owner', async function () {
+      await sale.addToWhitelist([buyer], {from: owner});
+      expect(await sale.whitelist(buyer)).to.be.equal(true);
+      await sale.removeFromWhitelist([buyer], {from: owner});
+      expect(await sale.whitelist(buyer)).to.be.equal(false);
+    });
+    it('should not allow non-whitelisted users to buy tokens', async function () {
+      const { start, end, bonus, minInvestmentLimit, hardcap } = STAGES[0];
+      await sale.setStage(0, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, true, { from: owner });
+      await increaseDateTo(start);
+      await expectRevert(sale.sendTransaction({ value: ether('1'), from: buyer }), 'CrowdSale: Your address is not whitelisted');
+    })
+    it('should allow whitelisted users to buy tokens', async function () {
+      const { start, end, bonus, minInvestmentLimit, hardcap } = STAGES[0];
+      await sale.setStage(0, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, true, { from: owner });
+      await sale.addToWhitelist([buyer], {from: owner});
+      await increaseDateTo(start);
+      await sale.sendTransaction({ value: ether('0.123'), from: buyer });
+    })
+  })
 });
 
 function expectStageToBeEqual (actual, expected) {

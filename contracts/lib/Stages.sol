@@ -17,6 +17,7 @@ library Stages {
         uint256 vestingSchedule;
         uint256 invested;
         uint256 tokensSold;
+        bool whitelist;
     }
 
     struct Map {
