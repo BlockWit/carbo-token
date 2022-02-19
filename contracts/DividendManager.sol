@@ -91,13 +91,13 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
             )
         );
         _excluded[account] = false;
-        ABDKMathQuad.add(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
+        _totalSupply = ABDKMathQuad.add(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
     }
 
     function excludeFromDividends(address account) public onlyOwner {
         _withdrawDividend(account);
         _excluded[account] = true;
-        ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
+        _totalSupply = ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
     }
 
     function reflectCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {
