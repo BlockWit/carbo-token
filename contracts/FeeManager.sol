@@ -30,8 +30,8 @@ contract FeeManager is Ownable, RecoverableFunds {
     IERC20 public busd;
     ICarboToken public carbo;
     IDividendManager public dividendManager;
-    FeeHolder buyFeeHolder;
-    FeeHolder sellFeeHolder;
+    FeeHolder public buyFeeHolder;
+    FeeHolder public sellFeeHolder;
 
     Addresses public addresses;
 
