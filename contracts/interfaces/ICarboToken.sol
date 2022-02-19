@@ -27,6 +27,13 @@ interface ICarboToken is IERC20 {
         uint256 liquidity;
     }
 
+    struct FeeAddresses {
+        address dividends;
+        address buyback;
+        address treasury;
+        address liquidity;
+    }
+
     enum FeeType { BUY, SELL, NONE}
 
     event FeeTaken(uint256 rfi, uint256 dividends, uint256 buyback, uint256 treasury, uint256 liquidity);
@@ -36,10 +43,10 @@ interface ICarboToken is IERC20 {
     function decimals() external pure returns (uint8);
     function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
     function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
-    function getFees() external view returns (Fees memory, Fees memory);
-    function setFees(bool isBuy, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) external;
-    function getFeeAddresses() external view returns (address, address, address, address);
-    function setFeeAddresses(address dividends, address buyback, address treasury, address liquidity) external;
+    function getFees(FeeType feeType) external view returns (Fees memory);
+    function setFees(FeeType feeType, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) external;
+    function getFeeAddresses(FeeType feeType) external view returns (FeeAddresses memory);
+    function setFeeAddresses(FeeType feeType, address dividends, address buyback, address treasury, address liquidity) external;
     function setTaxable(address account, bool value) external;
     function setTaxExempt(address account, bool value) external;
     function getROwned(address account) external view returns (uint256);

@@ -52,7 +52,8 @@ contract FeeManager is Ownable, RecoverableFunds {
     }
 
     function swapAndDistribute() external onlyOwner {
-        (ICarboToken.Fees memory buyFees, ICarboToken.Fees memory sellFees) = carbo.getFees();
+        ICarboToken.Fees memory buyFees = carbo.getFees(ICarboToken.FeeType.BUY);
+        ICarboToken.Fees memory sellFees = carbo.getFees(ICarboToken.FeeType.SELL);
         uint256 buyFeeTotal = buyFeeHolder.getTokens();
         uint256 sellFeeTotal = sellFeeHolder.getTokens();
         uint256 feeTotal = buyFeeTotal + sellFeeTotal;

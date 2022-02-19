@@ -95,8 +95,8 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
     // FEES
     // -----------------------------------------------------------------------------------------------------------------
 
-    Fees private _buyFees;
-    Fees private _sellFees;
+    mapping(FeeType => Fees) private _fees;
+    mapping(FeeType => FeeAddresses) private _feeAddresses;
     address private _dividendsAddress;
     address private _buybackAddress;
     address private _treasuryAddress;
@@ -104,28 +104,22 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
     mapping(address => bool) private _isTaxable;
     mapping(address => bool) private _isTaxExempt;
 
-    function getFees() override external view returns (Fees memory, Fees memory) {
-        return (_buyFees, _sellFees);
+    function getFees(FeeType feeType) override external view returns (Fees memory) {
+        return _fees[feeType];
     }
 
-    function setFees(bool isBuy, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) override external onlyOwner {
-        Fees memory fees = Fees(rfi, dividends, buyback, treasury, liquidity);
-        if (isBuy) {
-            _buyFees = fees;
-        } else {
-            _sellFees = fees;
-        }
+    function setFees(FeeType feeType, uint rfi, uint dividends, uint buyback, uint treasury, uint liquidity) override external onlyOwner {
+        require(feeType != FeeType.NONE, "CarboToken: Wrong FeeType");
+        _fees[feeType] = Fees(rfi, dividends, buyback, treasury, liquidity);
     }
 
-    function getFeeAddresses() override external view returns (address, address, address, address) {
-        return (_dividendsAddress, _buybackAddress, _treasuryAddress, _liquidityAddress);
+    function getFeeAddresses(FeeType feeType) override public view returns (FeeAddresses memory) {
+        return _feeAddresses[feeType];
     }
 
-    function setFeeAddresses(address dividends, address buyback, address treasury, address liquidity) override external onlyOwner {
-        _dividendsAddress = dividends;
-        _buybackAddress = buyback;
-        _treasuryAddress = treasury;
-        _liquidityAddress = liquidity;
+    function setFeeAddresses(FeeType feeType, address dividends, address buyback, address treasury, address liquidity) override external onlyOwner {
+        require(feeType != FeeType.NONE, "CarboToken: Wrong FeeType");
+        _feeAddresses[feeType] = FeeAddresses(dividends, buyback, treasury, liquidity);
     }
 
     function setTaxable(address account, bool value) override external onlyOwner {
@@ -139,12 +133,7 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
     }
 
     function _getFeeAmounts(uint256 amount, FeeType feeType) internal view returns (Fees memory) {
-        Fees memory fees;
-        if (feeType == FeeType.BUY) {
-            fees = _buyFees;
-        } else if (feeType == FeeType.SELL) {
-            fees = _sellFees;
-        }
+        Fees memory fees = _fees[feeType];
         Fees memory feeAmounts;
         feeAmounts.rfi = amount.mul(fees.rfi).div(PERCENT_RATE);
         feeAmounts.dividends = amount.mul(fees.dividends).div(PERCENT_RATE);
@@ -309,26 +298,28 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
     function _transfer(address sender, address recipient, uint256 amount) internal {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
-        (Amounts memory r, Amounts memory t) = _getAmounts(amount, _getFeeType(sender, recipient));
+        FeeType feeType = _getFeeType(sender, recipient);
+        (Amounts memory r, Amounts memory t) = _getAmounts(amount, feeType);
         require(_rOwned[sender] >= r.sum, "ERC20: transfer amount exceeds balance");
         _decreaseBalance(sender, t.sum, r.sum);
         _increaseBalance(recipient, t.transfer, r.transfer);
         emit Transfer(sender, recipient, t.transfer);
         if (t.sum != t.transfer) {
+            FeeAddresses memory feeAddresses = getFeeAddresses(feeType);
             if (t.rfi > 0) {
                 _reflect(t.rfi, r.rfi);
             }
             if (t.dividends > 0) {
-                _increaseBalance(_dividendsAddress, t.dividends, r.dividends);
+                _increaseBalance(feeAddresses.dividends, t.dividends, r.dividends);
             }
             if (t.buyback > 0) {
-                _increaseBalance(_buybackAddress, t.buyback, r.buyback);
+                _increaseBalance(feeAddresses.buyback, t.buyback, r.buyback);
             }
             if (t.treasury > 0) {
-                _increaseBalance(_treasuryAddress, t.treasury, r.treasury);
+                _increaseBalance(feeAddresses.treasury, t.treasury, r.treasury);
             }
             if (t.liquidity > 0) {
-                _increaseBalance(_liquidityAddress, t.liquidity, r.liquidity);
+                _increaseBalance(feeAddresses.liquidity, t.liquidity, r.liquidity);
             }
             emit FeeTaken(t.rfi, t.dividends, t.buyback, t.treasury, t.liquidity);
         }

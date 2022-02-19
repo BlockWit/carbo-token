@@ -1,5 +1,5 @@
 const { accounts, contract } = require('@openzeppelin/test-environment');
-const { BN, ether, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const { BN, ether, expectEvent, expectRevert, constants } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 
 const Token = contract.fromArtifact('CARBOToken');
@@ -17,30 +17,32 @@ describe('CARBOToken', async function () {
   describe('setFees', function () {
     describe('when called by non-owner', function () {
       it('should revert', async function () {
-        await expectRevert(token.setFees(true, 1, 2, 3, 4, 5, {from: deployer}), "Ownable: caller is not the owner");
+        await expectRevert(token.setFees(0, 1, 2, 3, 4, 5, {from: deployer}), "Ownable: caller is not the owner");
       });
     });
     describe('when called by owner', function () {
       it('should set buy fees correctly', async function () {
         const fees = {rfi: '1', dividends: '2', buyback: '3', treasury: '4', liquidity: '5'};
-        await token.setFees(true, fees.rfi, fees.dividends, fees.buyback, fees.treasury, fees.liquidity, {from: owner});
-        const {'0': buyFees, '1': sellFees} = await token.getFees();
+        await token.setFees(0, fees.rfi, fees.dividends, fees.buyback, fees.treasury, fees.liquidity, {from: owner});
+        const buyFees = await token.getFees(0);
         expect(buyFees.rfi).to.be.equal(fees.rfi);
         expect(buyFees.dividends).to.be.equal(fees.dividends);
         expect(buyFees.buyback).to.be.equal(fees.buyback);
         expect(buyFees.treasury).to.be.equal(fees.treasury);
         expect(buyFees.liquidity).to.be.equal(fees.liquidity);
+        const sellFees = await token.getFees(1);
         expect(sellFees.rfi).to.be.equal(sellFees.dividends).and.equal(sellFees.buyback).and.equal(sellFees.treasury).and.equal(sellFees.liquidity).and.equal('0');
       });
       it('should set sell fees correctly', async function () {
         const fees = {rfi: '5', dividends: '4', buyback: '3', treasury: '2', liquidity: '1'};
-        await token.setFees(false, fees.rfi, fees.dividends, fees.buyback, fees.treasury, fees.liquidity, {from: owner});
-        const {'0': buyFees, '1': sellFees} = await token.getFees();
+        await token.setFees(1, fees.rfi, fees.dividends, fees.buyback, fees.treasury, fees.liquidity, {from: owner});
+        const sellFees = await token.getFees(1);
         expect(sellFees.rfi).to.be.equal(fees.rfi);
         expect(sellFees.dividends).to.be.equal(fees.dividends);
         expect(sellFees.buyback).to.be.equal(fees.buyback);
         expect(sellFees.treasury).to.be.equal(fees.treasury);
         expect(sellFees.liquidity).to.be.equal(fees.liquidity);
+        const buyFees = await token.getFees(0);
         expect(buyFees.rfi).to.be.equal(buyFees.dividends).and.equal(buyFees.buyback).and.equal(buyFees.treasury).and.equal(buyFees.liquidity).and.equal('0');
       });
     });
@@ -49,17 +51,28 @@ describe('CARBOToken', async function () {
   describe('setFeeAddresses', function () {
     describe('when called by non-owner', function () {
       it('should revert', async function () {
-        await expectRevert(token.setFeeAddresses(dividends, buyback, treasury, liquidity, {from: deployer}), "Ownable: caller is not the owner");
+        await expectRevert(token.setFeeAddresses(0, dividends, buyback, treasury, liquidity, {from: deployer}), "Ownable: caller is not the owner");
       });
     });
     describe('when called by owner', function () {
       it('should set fee addresses correctly', async function () {
-        await token.setFeeAddresses(dividends, buyback, treasury, liquidity, {from: owner});
-        const addresses = await token.getFeeAddresses();
-        expect(addresses['0']).to.be.equal(dividends);
-        expect(addresses['1']).to.be.equal(buyback);
-        expect(addresses['2']).to.be.equal(treasury);
-        expect(addresses['3']).to.be.equal(liquidity);
+        await token.setFeeAddresses(0, dividends, buyback, treasury, liquidity, {from: owner});
+        let addresses = await token.getFeeAddresses(0);
+        expect(addresses.dividends).to.be.equal(dividends);
+        expect(addresses.buyback).to.be.equal(buyback);
+        expect(addresses.treasury).to.be.equal(treasury);
+        expect(addresses.liquidity).to.be.equal(liquidity);
+        addresses = await token.getFeeAddresses(1);
+        expect(addresses.dividends).to.be.equal(constants.ZERO_ADDRESS);
+        expect(addresses.buyback).to.be.equal(constants.ZERO_ADDRESS);
+        expect(addresses.treasury).to.be.equal(constants.ZERO_ADDRESS);
+        expect(addresses.liquidity).to.be.equal(constants.ZERO_ADDRESS);
+        await token.setFeeAddresses(1, dividends, buyback, treasury, liquidity, {from: owner});
+        addresses = await token.getFeeAddresses(1);
+        expect(addresses.dividends).to.be.equal(dividends);
+        expect(addresses.buyback).to.be.equal(buyback);
+        expect(addresses.treasury).to.be.equal(treasury);
+        expect(addresses.liquidity).to.be.equal(liquidity);
       });
     });
   });
@@ -111,13 +124,14 @@ describe('CARBOToken', async function () {
     beforeEach(async function () {
       {
         const {rfi, dividends, buyback, treasury, liquidity} = BUY_FEES;
-        await token.setFees(true, rfi, dividends, buyback, treasury, liquidity, {from: owner});
+        await token.setFees(0, rfi, dividends, buyback, treasury, liquidity, {from: owner});
       }
       {
         const {rfi, dividends, buyback, treasury, liquidity} = SELL_FEES;
-        await token.setFees(false, rfi, dividends, buyback, treasury, liquidity, {from: owner});
+        await token.setFees(1, rfi, dividends, buyback, treasury, liquidity, {from: owner});
       }
-      await token.setFeeAddresses(dividends, buyback, treasury, liquidity, {from: owner});
+      await token.setFeeAddresses(0, dividends, buyback, treasury, liquidity, {from: owner});
+      await token.setFeeAddresses(1, dividends, buyback, treasury, liquidity, {from: owner});
       await token.transfer(account1, ether('12345'), {from: deployer});
     })
     describe('from usual account', function () {
