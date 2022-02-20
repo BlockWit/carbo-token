@@ -86,9 +86,9 @@ contract CrowdSale is Pausable, RecoverableFunds {
         return (false, 0);
     }
 
-    function calculateInvestmentAmounts(Stages.Stage memory stage, uint256 stageIndex, address account) internal view returns (uint256, uint256) {
+    function calculateInvestmentAmounts(Stages.Stage memory stage, uint256 investment) internal view returns (uint256, uint256) {
         // apply a bonus if any
-        uint256 tokensWithoutBonus = msg.value.mul(price).div(1 ether);
+        uint256 tokensWithoutBonus = investment.mul(price).div(1 ether);
         uint256 tokensWithBonus = tokensWithoutBonus;
         if (stage.bonus > 0) {
             tokensWithBonus = tokensWithoutBonus.add(tokensWithoutBonus.mul(stage.bonus).div(percentRate));
@@ -96,14 +96,6 @@ contract CrowdSale is Pausable, RecoverableFunds {
         // limit the number of tokens that user can buy according to the hardcap of the current stage
         if (stage.tokensSold.add(tokensWithBonus) > stage.hardcapInTokens) {
             tokensWithBonus = stage.hardcapInTokens.sub(stage.tokensSold);
-            if (stage.bonus > 0) {
-                tokensWithoutBonus = tokensWithBonus.mul(percentRate).div(percentRate + stage.bonus);
-            }
-        }
-        // limit the number of tokens that user can buy according to max investment limit of the current stage
-        uint256 balance = balances[stageIndex][account];
-        if (balance.add(tokensWithBonus) > stage.maxInvestmentLimit) {
-            tokensWithBonus = stage.maxInvestmentLimit.sub(balance);
             if (stage.bonus > 0) {
                 tokensWithoutBonus = tokensWithBonus.mul(percentRate).div(percentRate + stage.bonus);
             }
@@ -121,13 +113,18 @@ contract CrowdSale is Pausable, RecoverableFunds {
         if (stage.whitelist) {
             require(whitelist[msg.sender], "CrowdSale: Your address is not whitelisted");
         }
+        uint256 value = msg.value;
         // check min investment limit
-        require(msg.value >= stage.minInvestmentLimit, "CrowdSale: The amount of ETH you sent is too small");
-        (uint256 tokens, uint256 investment) = calculateInvestmentAmounts(stage, stageIndex, msg.sender);
+        require(value >= stage.minInvestmentLimit, "CrowdSale: The amount of ETH you sent is too small");
+        uint256 allowedToInvest = stage.maxInvestmentLimit - balances[stageIndex][msg.sender];
+        if (value > allowedToInvest) {
+            value = allowedToInvest;
+        }
+        (uint256 tokens, uint256 investment) = calculateInvestmentAmounts(stage, value);
         require(tokens > 0, "CrowdSale: No tokens available for purchase");
         uint256 change = msg.value.sub(investment);
         // update stats
-        balances[stageIndex][msg.sender] = balances[stageIndex][msg.sender].add(tokens);
+        balances[stageIndex][msg.sender] = balances[stageIndex][msg.sender].add(investment);
         invested = invested.add(investment);
         stage.tokensSold = stage.tokensSold.add(tokens);
         // transfer tokens

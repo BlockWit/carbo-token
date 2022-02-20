@@ -18,8 +18,8 @@ describe('CrowdSale', async function () {
 
   beforeEach(async function () {
     STAGES = [
-      { start: await dateFromNow(1), end: await dateFromNow(8), bonus: 500, minInvestmentLimit: ether('0.03'), hardcap: ether('40000') },
-      { start: await dateFromNow(9), end: await dateFromNow(16), bonus: 0, minInvestmentLimit: ether('0.03'), hardcap: ether('60000') }
+      { start: await dateFromNow(1), end: await dateFromNow(8), bonus: 100, minInvestmentLimit: ether('0.03'), maxInvestmentLimit: ether('80000'), hardcap: ether('80000') },
+      { start: await dateFromNow(9), end: await dateFromNow(16), bonus: 0, minInvestmentLimit: ether('0.03'), maxInvestmentLimit: ether('120000'), hardcap: ether('120000') }
     ];
     sale = await Sale.new({ from: deployer });
     token = await Token.new({ from: deployer });
@@ -33,8 +33,8 @@ describe('CrowdSale', async function () {
       token.transfer(sale.address, ether('300000000'), { from: deployer })
     ]);
     await Promise.all(STAGES.map((stage, i) => {
-      const { start, end, bonus, minInvestmentLimit, hardcap } = stage;
-      return sale.setStage(i, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, false, { from: deployer });
+      const { start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap } = stage;
+      return sale.setStage(i, start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap, 0, 0, 0, false, { from: deployer });
     }));
     await Promise.all([
       sale.transferOwnership(owner, { from: deployer }),
@@ -67,6 +67,38 @@ describe('CrowdSale', async function () {
     expect(tokensReceived).to.be.bignumber.equal(tokensExpected);
   });
 
+  describe('should not return tokens above the maxInvestmentLimit',  function () {
+    const maxInvestmentLimit = ether('3');
+    beforeEach(async function () {
+      const { start, end, bonus, minInvestmentLimit, hardcap } = STAGES[0];
+      await sale.setStage(0, start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap, 0, 0, 0, false, { from: owner });
+      await increaseDateTo(start);
+    });
+    it('when limit exceded within first transaction', async function () {
+      const ethSent = ether('3');
+      await sale.sendTransaction({ value: ethSent, from: buyer });
+      await expectRevert(sale.sendTransaction({ value: ethSent, from: buyer }), 'CrowdSale: No tokens available for purchase');
+    });
+    it('when limit exceded within second transaction', async function () {
+      const ethSent = ether('2');
+      let tokensReceived1;
+      let tokensReceived2;
+      {
+        const { receipt: { transactionHash } } = await sale.sendTransaction({ value: ethSent, from: buyer });
+        const events = await getEvents(transactionHash, token, 'Transfer', web3);
+        tokensReceived1 = new BN(events[0].args.value);
+      }
+      {
+        const { receipt: { transactionHash } } = await sale.sendTransaction({ value: ethSent, from: buyer });
+        const events = await getEvents(transactionHash, token, 'Transfer', web3);
+        tokensReceived2 = new BN(events[0].args.value);
+      }
+      expect(tokensReceived1.add(tokensReceived2)).to.be.bignumber.equal(maxInvestmentLimit.muln(PRICE * (1 + STAGES[0].bonus / 100)))
+      await expectRevert(sale.sendTransaction({ value: ethSent, from: buyer }), 'CrowdSale: No tokens available for purchase');
+    });
+  })
+
+
   it('should not return tokens above the hardcap', async function () {
     const { start, hardcap } = STAGES[0];
     await increaseDateTo(start);
@@ -81,7 +113,7 @@ describe('CrowdSale', async function () {
     const { start, bonus, hardcap } = STAGES[0];
     await increaseDateTo(start);
     const ethBalanceBefore = new BN(await web3.eth.getBalance(buyer));
-    const ethSent = ether('97');
+    const ethSent = ether('93');
     const { receipt: { gasUsed, transactionHash } } = await sale.sendTransaction({ value: ethSent, from: buyer });
     const { gasPrice } = await web3.eth.getTransaction(transactionHash);
     const ethBalanceAfter = new BN(await web3.eth.getBalance(buyer));
@@ -115,7 +147,7 @@ describe('CrowdSale', async function () {
   });
 
   describe('whitelist', function () {
-    it('should not be affected by non-owner', async function () {
+    it('should not be editable by non-owner', async function () {
       await expectRevert(sale.addToWhitelist([buyer], {from: buyer}), 'Ownable: caller is not the owner');
       await expectRevert(sale.removeFromWhitelist([buyer], {from: buyer}), 'Ownable: caller is not the owner');
     });
@@ -126,14 +158,14 @@ describe('CrowdSale', async function () {
       expect(await sale.whitelist(buyer)).to.be.equal(false);
     });
     it('should not allow non-whitelisted users to buy tokens', async function () {
-      const { start, end, bonus, minInvestmentLimit, hardcap } = STAGES[0];
-      await sale.setStage(0, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, true, { from: owner });
+      const { start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap } = STAGES[0];
+      await sale.setStage(0, start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap, 0, 0, 0, true, { from: owner });
       await increaseDateTo(start);
       await expectRevert(sale.sendTransaction({ value: ether('1'), from: buyer }), 'CrowdSale: Your address is not whitelisted');
     })
     it('should allow whitelisted users to buy tokens', async function () {
-      const { start, end, bonus, minInvestmentLimit, hardcap } = STAGES[0];
-      await sale.setStage(0, start, end, bonus, minInvestmentLimit, hardcap, 0, 0, 0, true, { from: owner });
+      const { start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap } = STAGES[0];
+      await sale.setStage(0, start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcap, 0, 0, 0, true, { from: owner });
       await sale.addToWhitelist([buyer], {from: owner});
       await increaseDateTo(start);
       await sale.sendTransaction({ value: ether('0.123'), from: buyer });
