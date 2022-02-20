@@ -1,6 +1,6 @@
-![CARBO](carbo.svg "Carbo Token")
+![CARBO](logo.png "CleanCarbon")
 
-# CARBO smart contracts
+# CleanCarbon smart contracts
 
 * _Standart_        : [BEP20](https://github.com/binance-chain/BEPs/blob/master/BEP20.md)
 * _[Name](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5111-name)_            : CLEANCARBON
@@ -12,7 +12,7 @@
 
 ## Smart contracts description
 
-CARBO smart-contract
+CleanCarbon smart-contract
 
 ### Contracts
 1. _CARBOToken_ - Token contract
