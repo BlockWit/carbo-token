@@ -13,6 +13,7 @@ library Stages {
         uint256 end;
         uint256 bonus;
         uint256 minInvestmentLimit;
+        uint256 maxInvestmentLimit;
         uint256 hardcapInTokens;
         uint256 vestingSchedule;
         uint256 invested;

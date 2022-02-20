@@ -67,6 +67,7 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
     }
 
     function withdrawableDividendOf(address account) public view returns(uint256) {
+        if (_excluded[account]) return 0;
         return accumulativeDividendOf(account) - _withdrawnDividends[account];
     }
 

@@ -22,6 +22,7 @@ contract CrowdSale is Pausable, RecoverableFunds {
     uint256 public percentRate = 100;
     address payable public fundraisingWallet;
     mapping(address => bool) public whitelist;
+    mapping(uint256 => mapping(address => uint256)) public balances;
 
     function pause() public onlyOwner {
         _pause();
@@ -51,8 +52,8 @@ contract CrowdSale is Pausable, RecoverableFunds {
         price = newPrice;
     }
 
-    function setStage(uint256 id,uint256 start, uint256 end, uint256 bonus, uint256 minInvestmentLimit, uint256 hardcapInTokens, uint256 vestingSchedule, uint256 invested, uint256 tokensSold, bool whitelist) public onlyOwner returns (bool) {
-        return stages.set(id, Stages.Stage(start, end, bonus, minInvestmentLimit, hardcapInTokens, vestingSchedule, invested, tokensSold, whitelist));
+    function setStage(uint256 id,uint256 start, uint256 end, uint256 bonus, uint256 minInvestmentLimit, uint256 maxInvestmentLimit, uint256 hardcapInTokens, uint256 vestingSchedule, uint256 invested, uint256 tokensSold, bool whitelist) public onlyOwner returns (bool) {
+        return stages.set(id, Stages.Stage(start, end, bonus, minInvestmentLimit, maxInvestmentLimit, hardcapInTokens, vestingSchedule, invested, tokensSold, whitelist));
     }
 
     function removeStage(uint256 id) public onlyOwner returns (bool) {
@@ -85,7 +86,7 @@ contract CrowdSale is Pausable, RecoverableFunds {
         return (false, 0);
     }
 
-    function calculateInvestmentAmounts(Stages.Stage memory stage) internal view returns (uint256, uint256) {
+    function calculateInvestmentAmounts(Stages.Stage memory stage, uint256 stageIndex, address account) internal view returns (uint256, uint256) {
         // apply a bonus if any
         uint256 tokensWithoutBonus = msg.value.mul(price).div(1 ether);
         uint256 tokensWithBonus = tokensWithoutBonus;
@@ -95,6 +96,14 @@ contract CrowdSale is Pausable, RecoverableFunds {
         // limit the number of tokens that user can buy according to the hardcap of the current stage
         if (stage.tokensSold.add(tokensWithBonus) > stage.hardcapInTokens) {
             tokensWithBonus = stage.hardcapInTokens.sub(stage.tokensSold);
+            if (stage.bonus > 0) {
+                tokensWithoutBonus = tokensWithBonus.mul(percentRate).div(percentRate + stage.bonus);
+            }
+        }
+        // limit the number of tokens that user can buy according to max investment limit of the current stage
+        uint256 balance = balances[stageIndex][account];
+        if (balance.add(tokensWithBonus) > stage.maxInvestmentLimit) {
+            tokensWithBonus = stage.maxInvestmentLimit.sub(balance);
             if (stage.bonus > 0) {
                 tokensWithoutBonus = tokensWithBonus.mul(percentRate).div(percentRate + stage.bonus);
             }
@@ -114,10 +123,11 @@ contract CrowdSale is Pausable, RecoverableFunds {
         }
         // check min investment limit
         require(msg.value >= stage.minInvestmentLimit, "CrowdSale: The amount of ETH you sent is too small");
-        (uint256 tokens, uint256 investment) = calculateInvestmentAmounts(stage);
+        (uint256 tokens, uint256 investment) = calculateInvestmentAmounts(stage, stageIndex, msg.sender);
         require(tokens > 0, "CrowdSale: No tokens available for purchase");
         uint256 change = msg.value.sub(investment);
         // update stats
+        balances[stageIndex][msg.sender] = balances[stageIndex][msg.sender].add(tokens);
         invested = invested.add(investment);
         stage.tokensSold = stage.tokensSold.add(tokens);
         // transfer tokens
