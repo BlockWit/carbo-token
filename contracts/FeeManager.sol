@@ -64,9 +64,9 @@ contract FeeManager is Ownable, RecoverableFunds {
         require(toSwap > 0, "FeeManager: nothing to swap");
         _swap(toSwap);
         uint256 busdReceived = busd.balanceOf(address(this));
-        uint256 dividends = busdReceived * (buyFeeAmounts.dividends + buyFeeAmounts.dividends) / feeTotal;
-        uint256 buyback = busdReceived * (buyFeeAmounts.buyback + buyFeeAmounts.buyback) / feeTotal;
-        uint256 treasury = busdReceived * (buyFeeAmounts.treasury + buyFeeAmounts.treasury) / feeTotal;
+        uint256 dividends = busdReceived * (buyFeeAmounts.dividends + sellFeeAmounts.dividends) / feeTotal;
+        uint256 buyback = busdReceived * (buyFeeAmounts.buyback + sellFeeAmounts.buyback) / feeTotal;
+        uint256 treasury = busdReceived * (buyFeeAmounts.treasury + sellFeeAmounts.treasury) / feeTotal;
         uint256 liquidity = busdReceived - dividends - buyback - treasury;
         busd.approve(address(dividendManager), dividends);
         dividendManager.distributeDividends(dividends);
@@ -87,10 +87,9 @@ contract FeeManager is Ownable, RecoverableFunds {
     }
 
     function _swap(uint256 amount) internal {
-        address[] memory path = new address[](3);
-        path[0] = address(this);
-        path[1] = address(carbo);
-        path[2] = address(busd);
+        address[] memory path = new address[](2);
+        path[0] = address(carbo);
+        path[1] = address(busd);
 
         carbo.approve(address(uniswapRouter), amount);
 
