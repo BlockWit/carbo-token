@@ -4,6 +4,7 @@ const { logger } = require('./util');
 async function deploy () {
   const { log } = logger(await web3.eth.net.getNetworkType());
   const [deployer] = await web3.eth.getAccounts();
+  const args = process.argv.slice(2);
   const BUSD_ADDRESS = args[args.findIndex(argName => argName === '--busd') + 1];
   const TOKEN_ADDRESS = args[args.findIndex(argName => argName === '--token') + 1];
   const DIVIDENDMANAGER_ADDRESS = args[args.findIndex(argName => argName === '--divs') + 1];

@@ -1,4 +1,4 @@
-const { getEvents, dateFromNow, increaseDateTo, getTransactionCost } = require('./util');
+const { getEvents, dateFromNow, increaseDateTo } = require('./util');
 const { accounts, contract, web3 } = require('@openzeppelin/test-environment');
 const { BN, ether, expectEvent, expectRevert, time } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');

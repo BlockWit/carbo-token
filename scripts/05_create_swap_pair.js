@@ -7,6 +7,7 @@ const UniswapFactory = fromArtifact("@uniswap/v2-core/build/UniswapV2Factory.jso
 async function deploy () {
   const { log } = logger(await web3.eth.net.getNetworkType());
   const [deployer] = await web3.eth.getAccounts();
+  const args = process.argv.slice(2);
   const UNISWAP_FACTORY_ADDRESS = args[args.findIndex(argName => argName === '--factory') + 1];
   const uniswapFactory = await UniswapFactory.at(UNISWAP_FACTORY_ADDRESS);
   const { tx } = await uniswapFactory.createPair(token.address, busd.address, {from: deployer});

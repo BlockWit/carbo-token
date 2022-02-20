@@ -5,6 +5,7 @@ const { logger } = require('./util');
 async function deploy () {
   const { log } = logger(await web3.eth.net.getNetworkType());
   const [deployer] = await web3.eth.getAccounts();
+  const args = process.argv.slice(2);
   const TOKEN_ADDRESS = args[args.findIndex(argName => argName === '--token') + 1];
   const CROWDSALE_ADDRESS = args[args.findIndex(argName => argName === '--sale') + 1];
   const WALLET_ADDRESS = args[args.findIndex(argName => argName === '--wallet') + 1];
@@ -47,32 +48,32 @@ async function deploy () {
   }
   {
     log(`Token. Exclude buy fee address from RFI`);
-    const tx = await token.token.excludeFromRFI(BUY_FEE_ADDRESS, {from: deployer});
+    const tx = await token.excludeFromRFI(BUY_FEE_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
     log(`Token. Exclude buy fee address from RFI`);
-    const tx = await token.token.excludeFromRFI(SELL_FEE_ADDRESS, {from: deployer});
+    const tx = await token.excludeFromRFI(SELL_FEE_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
     log(`Token. Exclude crowdsale address from RFI`);
-    const tx = await token.token.excludeFromRFI(CROWDSALE_ADDRESS, {from: deployer});
+    const tx = await token.excludeFromRFI(CROWDSALE_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
     log(`Token. Exclude vesting wallet address from RFI`);
-    const tx = await token.token.excludeFromRFI(WALLET_ADDRESS, {from: deployer});
+    const tx = await token.excludeFromRFI(WALLET_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
     log(`Token. Exclude swap pair address from RFI`);
-    const tx = await token.token.excludeFromRFI(SWAP_PAIR_ADDRESS, {from: deployer});
+    const tx = await token.excludeFromRFI(SWAP_PAIR_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
     log(`Token. Make transactions to/from swap pair taxable`);
-    const tx = await token.token.setTaxable(SWAP_PAIR_ADDRESS, true, {from: deployer});
+    const tx = await token.setTaxable(SWAP_PAIR_ADDRESS, true, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {

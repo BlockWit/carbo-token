@@ -6,6 +6,7 @@ const { logger } = require('./util');
 async function deploy () {
   const { log } = logger(await web3.eth.net.getNetworkType());
   const [deployer] = await web3.eth.getAccounts();
+  const args = process.argv.slice(2);
   const SALE_ADDRESS = args[args.findIndex(argName => argName === '--sale') + 1];
   const TOKEN_ADDRESS = args[args.findIndex(argName => argName === '--token') + 1];
   const WALLET_ADDRESS = args[args.findIndex(argName => argName === '--wallet') + 1];
