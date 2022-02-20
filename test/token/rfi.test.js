@@ -100,6 +100,78 @@ describe('CARBOToken', async function () {
     });
   });
 
+  describe('burn', function () {
+    beforeEach(async function () {
+      await token.transfer(account1, ether('12345'), {from: deployer});
+      await token.transfer(account2, ether('23456'), {from: deployer});
+    })
+    describe('from usual account', function () {
+      it('should decrease user\'s balance', async function () {
+        const amount = ether('123');
+        const before = await token.balanceOf(account1);
+        await token.burn(amount, {from: account1});
+        const after = await token.balanceOf(account1);
+        expect(after).to.be.bignumber.equal(before.sub(amount));
+      })
+      it('should decrease total supply', async function () {
+        const amount = ether('123');
+        const before = await token.totalSupply();
+        await token.burn(amount, {from: account1});
+        const after = await token.totalSupply();
+        expect(after).to.be.bignumber.equal(before.sub(amount));
+      })
+      it('should not affect other balances', async function () {
+        const amount = ether('123');
+        const before = await token.balanceOf(account2);
+        await token.burn(amount, {from: account1});
+        const after = await token.balanceOf(account2);
+        expect(after).to.be.bignumber.equal(before);
+      })
+    });
+    describe('from excluded account', function () {
+      beforeEach(async function () {
+        await token.excludeFromRFI(account1, {from: owner});
+      })
+      it('should decrease user\'s balance', async function () {
+        const amount = ether('123');
+        const before = await token.balanceOf(account1);
+        await token.burn(amount, {from: account1});
+        const after = await token.balanceOf(account1);
+        expect(after).to.be.bignumber.equal(before.sub(amount));
+      })
+      it('should decrease total supply', async function () {
+        const amount = ether('123');
+        const before = await token.totalSupply();
+        await token.burn(amount, {from: account1});
+        const after = await token.totalSupply();
+        expect(after).to.be.bignumber.equal(before.sub(amount));
+      })
+      it('should not affect other balances', async function () {
+        const amount = ether('123');
+        const before = await token.balanceOf(account2);
+        await token.burn(amount, {from: account1});
+        const after = await token.balanceOf(account2);
+        expect(after).to.be.bignumber.equal(before);
+      })
+      it('should not affect total supply after account included back in RFI', async function () {
+        const amount = ether('123');
+        await token.burn(amount, {from: account1});
+        const before = await token.totalSupply();
+        await token.includeInRFI(account1, {from: owner});
+        const after = await token.totalSupply();
+        expect(after).to.be.bignumber.equal(before);
+      })
+      it('should not affect other balances after account included back in RFI', async function () {
+        const amount = ether('123');
+        const before = await token.balanceOf(account2);
+        await token.burn(amount, {from: account1});
+        await token.includeInRFI(account1, {from: owner});
+        const after = await token.balanceOf(account2);
+        expect(after).to.be.bignumber.equal(before);
+      })
+    });
+  });
+
   //--------------------------------------------------------------------------------------------------------------------
   // helpers
   //--------------------------------------------------------------------------------------------------------------------

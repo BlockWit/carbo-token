@@ -3,6 +3,7 @@ const { ether } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const { shouldBehaveLikeERC20 } = require('../behaviors/ERC20.behavior');
 const { shouldBehaveLikeRecoverableFunds } = require('../behaviors/RecoverableFunds.behaviour');
+const {shouldBehaveLikeERC20Burnable} = require("../behaviors/ERC20Burnable.behavior");
 
 const Token = contract.fromArtifact('CARBOToken');
 
@@ -14,6 +15,7 @@ describe('ERC20', function () {
     this.token = await Token.new({ from: owner });
   });
   shouldBehaveLikeERC20("ERC20", TOTAL_SUPPLY, owner, account1, account2);
+  shouldBehaveLikeERC20Burnable(owner, TOTAL_SUPPLY, [account1]);
 });
 
 describe('RecoverableFunds', function () {

@@ -16,7 +16,7 @@ const TOTAL_AMOUNT = ether('500000000');
 const BUY_FEES = {rfi: 0, dividends: 30, buyback: 5, treasury: 5, liquidity: 10};
 const SELL_FEES = {rfi: 40, dividends: 0, buyback: 0, treasury: 0, liquidity: 10};
 
-describe('DividendManager', async function () {
+describe('FeeManager', async function () {
   let token;
   let busd;
   let dividendManager;
@@ -128,9 +128,7 @@ describe('DividendManager', async function () {
     })
     it('should send appropriate amount of tokens to liquidity wallet', async function () {
       const [sellFee, buyFee] = await Promise.all([token.balanceOf(sellFeeHolder), token.balanceOf(buyFeeHolder)]);
-      const { tx } = await feeManager.swapAndDistribute({from: owner});
-      const swag = await getEvents(tx, busd, 'Transfer', web3);
-      console.log(swag);
+      await feeManager.swapAndDistribute({from: owner});
       const after = await token.balanceOf(liquidity);
       const expectedSellFeeLiquidity = sellFee.divn(2);
       const expectedBuyFeeLiquidity = buyFee.divn(10)

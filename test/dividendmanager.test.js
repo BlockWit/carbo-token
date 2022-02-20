@@ -209,4 +209,35 @@ describe('DividendManager', async function () {
     });
   });
 
+  describe('token burn', function () {
+    it('should decrease totalSupply', async function () {
+      const before = await dividendManager.totalSupply();
+      await token.burn(balances[0], {from: account1});
+      const after = await dividendManager.totalSupply();
+      expect(after).to.be.bignumber.lt(before);
+    });
+    it('should not affect account\'s dividend', async function () {
+      const amount = ether('34');
+      await busd.approve(dividendManager.address, amount, {from: owner});
+      await dividendManager.distributeDividends(amount, {from: owner});
+      const before = await dividendManager.withdrawableDividendOf(account1);
+      await token.burn(balances[0], {from: account1});
+      const after = await dividendManager.withdrawableDividendOf(account1);
+      expect(after).to.be.bignumber.equal(before);
+    });
+    it('should increase withdrawable dividend', async function () {
+      const amount = ether('34');
+      const accounts = [account1, account2, account3];
+      await busd.approve(dividendManager.address, amount, {from: owner});
+      await dividendManager.distributeDividends(amount, {from: owner});
+      const before = await Promise.all(accounts.map(account => dividendManager.withdrawableDividendOf(account)));
+      await Promise.all(accounts.map(account => dividendManager.withdrawDividend({from: account})));
+      await token.burn(ether('321'), {from: owner});
+      await busd.approve(dividendManager.address, amount, {from: owner});
+      await dividendManager.distributeDividends(amount, {from: owner});
+      const after = await Promise.all(accounts.map(account => dividendManager.withdrawableDividendOf(account)));
+      accounts.forEach((acc, i) => expect(after[i]).to.be.bignumber.gt(before[i]));
+    });
+  });
+
 });
