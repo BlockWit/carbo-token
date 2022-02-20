@@ -57,6 +57,7 @@ contract FeeManager is Ownable, RecoverableFunds {
         uint256 buyFeeTotal = buyFeeHolder.getTokens();
         uint256 sellFeeTotal = sellFeeHolder.getTokens();
         uint256 feeTotal = buyFeeTotal + sellFeeTotal;
+        require(feeTotal > 0, "FeeManager: nothing to distribute");
         Amounts memory buyFeeAmounts = _getAmounts(buyFeeTotal, buyFees);
         Amounts memory sellFeeAmounts = _getAmounts(sellFeeTotal, sellFees);
         uint256 notToSwap = (buyFeeAmounts.liquidity + sellFeeAmounts.liquidity) / 2;
@@ -79,10 +80,12 @@ contract FeeManager is Ownable, RecoverableFunds {
     function _getAmounts(uint256 amount, ICarboToken.Fees memory fees) internal view returns (Amounts memory amounts) {
         Amounts memory amounts;
         uint256 denominator = fees.dividends + fees.buyback + fees.treasury + fees.liquidity;
-        amounts.dividends = amount * fees.dividends / denominator;
-        amounts.buyback = amount * fees.buyback / denominator;
-        amounts.treasury = amount * fees.treasury / denominator;
-        amounts.liquidity = amount - amounts.dividends - amounts.buyback - amounts.treasury;
+        if (denominator > 0) {
+            amounts.dividends = amount * fees.dividends / denominator;
+            amounts.buyback = amount * fees.buyback / denominator;
+            amounts.treasury = amount * fees.treasury / denominator;
+            amounts.liquidity = amount - amounts.dividends - amounts.buyback - amounts.treasury;
+        }
         return amounts;
     }
 
