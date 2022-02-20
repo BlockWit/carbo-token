@@ -9,8 +9,10 @@ async function deploy () {
   const [deployer] = await web3.eth.getAccounts();
   const args = process.argv.slice(2);
   const UNISWAP_FACTORY_ADDRESS = args[args.findIndex(argName => argName === '--factory') + 1];
+  const BUSD_ADDRESS = args[args.findIndex(argName => argName === '--busd') + 1];
+  const TOKEN_ADDRESS = args[args.findIndex(argName => argName === '--token') + 1];
   const uniswapFactory = await UniswapFactory.at(UNISWAP_FACTORY_ADDRESS);
-  const { tx } = await uniswapFactory.createPair(token.address, busd.address, {from: deployer});
+  const { tx } = await uniswapFactory.createPair(TOKEN_ADDRESS, BUSD_ADDRESS, {from: deployer});
   const logs = await getEvents(tx, uniswapFactory, 'PairCreated', web3);
   const swapPairAddress = logs[0].args.pair;
   log(`Pair created at address: @address{${swapPairAddress}}`);
