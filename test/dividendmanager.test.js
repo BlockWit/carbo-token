@@ -45,11 +45,8 @@ describe('DividendManager', async function () {
       });
     });
     describe('when called by owner', function () {
-      it('should increase totalSupply in proportion to included balance', async function () {
-        const before = await dividendManager.totalSupply();
+      it('should work', async function () {
         await dividendManager.includeInDividends(account3, {from: owner});
-        const after = await dividendManager.totalSupply();
-        expect(after).to.be.bignumber.gt(before);
       });
     });
   });
@@ -61,11 +58,8 @@ describe('DividendManager', async function () {
       });
     });
     describe('when called by owner', function () {
-      it('should decrease totalSupply', async function () {
-        const before = await dividendManager.totalSupply();
+      it('should work', async function () {
         await dividendManager.excludeFromDividends(account3, {from: owner});
-        const after = await dividendManager.totalSupply();
-        expect(after).to.be.bignumber.lt(before);
       });
     });
   });
@@ -103,12 +97,6 @@ describe('DividendManager', async function () {
         withdrawableAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(withdrawableBefore[i]));
         withdrawnAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(withdrawnBefore[i]));
       })
-      it('should not change totalSupply', async function () {
-        const before = await dividendManager.totalSupply();
-        await token.transfer(account1, ether('123'), {from: account2});
-        const after = await dividendManager.totalSupply();
-        expect(after).to.be.bignumber.equal(before);
-      })
     });
     describe('from ususal account to excluded account', function () {
       it('should not change dividend amounts', async function () {
@@ -124,13 +112,6 @@ describe('DividendManager', async function () {
         withdrawableAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(withdrawableBefore[i]));
         withdrawnAfter.forEach((dividend, i) => expect(dividend).to.be.bignumber.equal(withdrawnBefore[i]));
       })
-      it('should decrease totalAmount of DividendManager', async function () {
-        const amount = ether('123');
-        const before = await dividendManager.totalSupply();
-        await token.transfer(owner, amount, {from: account1});
-        const after = await dividendManager.totalSupply();
-        expect(after).to.be.bignumber.lt(before);
-      });
       it('should increase dividend per share', async function () {
         const amount = ether('321');
         const accounts = [account1, account2];
@@ -177,23 +158,10 @@ describe('DividendManager', async function () {
         }
         accounts.forEach((acc, i) => expect(diffs2[i]).to.be.bignumber.lt(diffs1[i]));
       })
-      it('should increase totalAmount of DividendManager', async function () {
-        const amount = ether('123');
-        const before = await dividendManager.totalSupply();
-        await token.transfer(account1, amount, {from: owner});
-        const after = await dividendManager.totalSupply();
-        expect(after).to.be.bignumber.gt(before);
-      });
     });
   });
 
   describe('token reflect', function () {
-    it('should decrease totalSupply', async function () {
-      const before = await dividendManager.totalSupply();
-      await token.reflect(balances[0], {from: account1});
-      const after = await dividendManager.totalSupply();
-      expect(after).to.be.bignumber.lt(before);
-    });
     it('should increase withdrawable dividend', async function () {
       const amount = ether('34');
       const accounts = [account1, account2, account3];
@@ -210,12 +178,6 @@ describe('DividendManager', async function () {
   });
 
   describe('token burn', function () {
-    it('should decrease totalSupply', async function () {
-      const before = await dividendManager.totalSupply();
-      await token.burn(balances[0], {from: account1});
-      const after = await dividendManager.totalSupply();
-      expect(after).to.be.bignumber.lt(before);
-    });
     it('should not affect account\'s dividend', async function () {
       const amount = ether('34');
       await busd.approve(dividendManager.address, amount, {from: owner});

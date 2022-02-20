@@ -13,7 +13,7 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
     ICarboToken public token;
     IERC20 public busd;
 
-    bytes16 internal _totalSupply;
+    uint256 internal _excludedSupply;
     bytes16 internal _dividendPerShare;
     mapping(address => bytes16) internal _dividendCorrections;
     mapping(address => uint256) internal _withdrawnDividends;
@@ -29,15 +29,10 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
 
     function setToken(address _token) public onlyOwner {
         token = ICarboToken(_token);
-        _totalSupply = ABDKMathQuad.fromUInt(token.getRTotal());
     }
 
     function setBUSD(address _busd) public onlyOwner {
         busd = IERC20(_busd);
-    }
-
-    function totalSupply() public view returns(uint256)  {
-        return ABDKMathQuad.toUInt(_totalSupply);
     }
 
     function dividendCorrectionOf(address account) public view returns(uint256)  {
@@ -49,14 +44,15 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
     }
 
     function distributeDividends(uint256 amount) public {
-        require(ABDKMathQuad.sign(_totalSupply) > 0, "DividendManager: totalSupply should be greater than 0");
+        uint256 correctedSupply = token.getRTotal() - _excludedSupply;
+        require(correctedSupply > 0, "DividendManager: totalSupply should be greater than 0");
         require(amount > 0, "DividendManager: distributed amount should be greater than 0");
         busd.transferFrom(_msgSender(), address(this), amount);
         _dividendPerShare = ABDKMathQuad.add(
             _dividendPerShare,
             ABDKMathQuad.div(
                 ABDKMathQuad.fromUInt(amount),
-                _totalSupply
+                ABDKMathQuad.fromUInt(correctedSupply)
             )
         );
         emit DividendsDistributed(msg.sender, amount);
@@ -92,40 +88,34 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
             )
         );
         _excluded[account] = false;
-        _totalSupply = ABDKMathQuad.add(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
+        _excludedSupply = _excludedSupply - token.getROwned(account);
     }
 
     function excludeFromDividends(address account) public onlyOwner {
         _withdrawDividend(account);
         _excluded[account] = true;
-        _totalSupply = ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(token.getROwned(account)));
+        _excludedSupply = _excludedSupply + token.getROwned(account);
     }
 
-    function reflectCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {
-        _totalSupply = ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(rAmount));
-    }
+    function reflectCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {}
 
     function increaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {
-        bytes16 value = ABDKMathQuad.fromUInt(rAmount);
         if (_excluded[account]) {
-            _totalSupply = ABDKMathQuad.sub(_totalSupply, value);
+            _excludedSupply = _excludedSupply + rAmount;
         } else {
-            _decreaseDividendCorrection(account, _calculateDividendCorrection(value));
+            _decreaseDividendCorrection(account, _calculateDividendCorrection(ABDKMathQuad.fromUInt(rAmount)));
         }
     }
 
     function decreaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {
-        bytes16 value = ABDKMathQuad.fromUInt(rAmount);
         if (_excluded[account]) {
-            _totalSupply = ABDKMathQuad.add(_totalSupply, value);
+            _excludedSupply = _excludedSupply - rAmount;
         } else {
-            _increaseDividendCorrection(account, _calculateDividendCorrection(value));
+            _increaseDividendCorrection(account, _calculateDividendCorrection(ABDKMathQuad.fromUInt(rAmount)));
         }
     }
 
-    function decreaseTotalSupplyCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {
-        _totalSupply = ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(rAmount));
-    }
+    function decreaseTotalSupplyCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {}
 
     function transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) override external onlyToken {}
 
