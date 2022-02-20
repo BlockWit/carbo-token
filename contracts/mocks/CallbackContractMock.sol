@@ -38,6 +38,10 @@ contract CallbackContractMock is ICallbackContract {
         decreaseBalanceCallbackRAmount = rAmount;
     }
 
+    function decreaseTotalSupplyCallback(uint256 tAmount, uint256 rAmount) external override {
+    }
+
+
     function transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) external override {
         transferCallbackFromAccount = from;
         transferCallbackToAccount = to;

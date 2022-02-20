@@ -122,6 +122,10 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
         }
     }
 
+    function decreaseTotalSupplyCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {
+        _totalSupply = ABDKMathQuad.sub(_totalSupply, ABDKMathQuad.fromUInt(rAmount));
+    }
+
     function transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) override external onlyToken {}
 
     function _withdrawDividend(address account) internal {

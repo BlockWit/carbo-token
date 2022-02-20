@@ -78,10 +78,23 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
     function decreaseAllowance(address spender, uint256 subtractedValue) override external returns (bool) {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-    unchecked {
-        _approve(_msgSender(), spender, currentAllowance - subtractedValue);
-    }
+        unchecked {
+            _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+        }
         return true;
+    }
+
+    function burn(uint256 amount) override external {
+        _burn(_msgSender(), amount);
+    }
+
+    function burnFrom(address account, uint256 amount) override external  {
+        uint256 currentAllowance = _allowances[account][_msgSender()];
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        unchecked {
+            _approve(account, _msgSender(), currentAllowance - amount);
+        }
+        _burn(account, amount);
     }
 
     function _approve(address owner, address spender, uint256 amount) internal {
@@ -89,6 +102,15 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         require(spender != address(0), "ERC20: approve to the zero address");
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal {
+        require(account != address(0), "ERC20: burn from the zero address");
+        uint256 rAmount = _getRAmount(amount, _getRate());
+        require(_rOwned[account] >= rAmount, "ERC20: burn amount exceeds balance");
+        _decreaseBalance(account, amount, rAmount);
+        _decreaseTotalSupply(amount, rAmount);
+        emit Transfer(account, address(0), amount);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -293,6 +315,12 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
             _tOwned[account] = _tOwned[account].sub(tAmount);
         }
         _decreaseBalanceCallback(account, tAmount, rAmount);
+    }
+
+    function _decreaseTotalSupply(uint256 tAmount, uint256 rAmount) private {
+        _tTotal = _tTotal.sub(tAmount);
+        _rTotal = _rTotal.sub(rAmount);
+        _decreaseTotalSupplyCallback(tAmount, rAmount);
     }
 
     function _transfer(address sender, address recipient, uint256 amount) internal {

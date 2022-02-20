@@ -34,6 +34,12 @@ contract WithCallback is Ownable {
         }
     }
 
+    function _decreaseTotalSupplyCallback(uint256 tAmount, uint256 rAmount) internal {
+        if (callback != address(0x0)) {
+            ICallbackContract(callback).decreaseTotalSupplyCallback(tAmount, rAmount);
+        }
+    }
+
     function _transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) internal {
         if (callback != address(0x0)) {
             ICallbackContract(callback).transferCallback(from, to, tFromAmount, rFromAmount, tToAmount, rToAmount);
