@@ -3,7 +3,7 @@
 # CARBO smart contracts
 
 * _Standart_        : [BEP20](https://github.com/binance-chain/BEPs/blob/master/BEP20.md)
-* _[Name](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5111-name)_            : CARBO
+* _[Name](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5111-name)_            : CLEANCARBON
 * _[Ticker](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5112-symbol)_          : CARBO
 * _[Decimals](https://github.com/binance-chain/BEPs/blob/master/BEP20.md#5113-decimals)_        : 18
 * _Emission_        : One-time, 500 000 000 tokens
@@ -15,9 +15,11 @@
 CARBO smart-contract
 
 ### Contracts
-1. _CARBOToken_- Token contract
-2. _CrowdSale_ - Sale contract
-3. _VestingWallet_ - Wallet contract
+1. _CARBOToken_ - Token contract
+2. _DividendManager_ - Contract for managing dividends
+3. _FeeManager_ - Contract to simplify work with commissions
+4. _CrowdSale_ - Contract for public sale
+5. _VestingWallet_ - Wallet for token locking
 
 ### How to work with this project
 #### To start working with the contracts, please, follow theese steps for each contract:
@@ -51,12 +53,21 @@ EXODUS does not support BEP20, but provides the ability to export the private ke
 ## Main network configuration
 
 ### Contracts
-* [CARBOToken](https://bscscan.com/token/)
-* [CrowdSale](https://bscscan.com/address/)
-* [VestingWallet](https://bscscan.com/address/)
+* work in progress
 
 ## Test network configuration (BSC Testnet)
-You can find test log [here](docs/bsctestnet.log.md)
+### Contracts deployed
+* [CARBOToken](https://testnet.bscscan.com/token/0x1a8fb2aFbEb83738E3e909b85DE85C515947b1f7)
+* [DividendManager](https://testnet.bscscan.com/address/0x4cf9e47C899167F3a46c17242611414699ed7742)
+* [FeeManager](https://testnet.bscscan.com/address/0x50Cf5bf7BF28dE433e749A1cb4bE6ca9F62EF66f)
+* [CrowdSale](https://testnet.bscscan.com/address/0xF79e6a953799b97B0649d49f26F9a432909abAae)
+* [VestingWallet](https://testnet.bscscan.com/address/0x03fBcAE003f54fb7b818F02F3D300a677Aa775EF)
+* [PancakePair](https://testnet.bscscan.com/address/0xD91369Ea48438E17d418953EF709EdDeCEa46578)
+### Third-party contracts used
+* [BUSD](https://testnet.bscscan.com/token/0xeD24FC36d5Ee211Ea25A80239Fb8C4Cfd80f12Ee)
+* [PancakeRouter](https://testnet.bscscan.com/address/0xD99D1c33F9fC3444f8101754aBC46c52416550D1)
+
+You can find test log [here](docs/report.bsctestnet.log)
 
 ## User's guide
 You can find the user guide for end-users [here](docs/user.md)
