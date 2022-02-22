@@ -1,5 +1,6 @@
 const CrowdSale = artifacts.require('CrowdSale');
 const { ether } = require('@openzeppelin/test-helpers');
+const { time } = require('@openzeppelin/test-helpers');
 
 const { logger } = require('./util');
 
@@ -15,8 +16,8 @@ async function deploy () {
   const FUNDRAISING_WALLET = '0x4A1C819e0158051237A15Ec4E5fD7bB490ADcea0';
   const STAGE1 = {
     id: 0,
-    start: 1647774000, // March 20 2022 11:00 UTC
-    end: 1648378800, // March 27 2022 11:00 UTC
+    start: time.duration.seconds(Math.floor(new Date('March 20 2022 11:00 UTC') / 1000).toString()),
+    end: time.duration.seconds(Math.floor(new Date('March 27 2022 11:00 UTC') / 1000).toString()),
     bonus: 0,
     minInvestmentLimit: ether('1'),
     maxInvestmentLimit: ether('50'),
@@ -26,8 +27,8 @@ async function deploy () {
   };
   const STAGE2 = {
     id: 1,
-    start: 1648378800, // March 27 2022 11:00 UTC'
-    end: 16488972000, // April 2 2022 11:00 UTC
+    start: time.duration.seconds(Math.floor(new Date('March 27 2022 11:00 UTC') / 1000).toString()),
+    end: time.duration.seconds(Math.floor(new Date('April 2 2022 11:00 UTC') / 1000).toString()),
     bonus: 0,
     minInvestmentLimit: ether('1'),
     maxInvestmentLimit: ether('300000000'),
