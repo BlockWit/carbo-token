@@ -4,13 +4,14 @@ pragma solidity ^0.8.0;
 
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ICarboToken.sol";
 import "./interfaces/IDividendManager.sol";
 import "./RecoverableFunds.sol";
 import "./WithCallback.sol";
 
-contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
+contract CarboToken is ICarboToken, Ownable, Pausable, RecoverableFunds, WithCallback {
 
     using SafeMath for uint256;
 
@@ -104,7 +105,7 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         emit Approval(owner, spender, amount);
     }
 
-    function _burn(address account, uint256 amount) internal {
+    function _burn(address account, uint256 amount) internal whenNotPaused {
         require(account != address(0), "ERC20: burn from the zero address");
         uint256 rAmount = _getRAmount(amount, _getRate());
         require(_rOwned[account] >= rAmount, "ERC20: burn amount exceeds balance");
@@ -112,6 +113,18 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         _decreaseTotalSupply(amount, rAmount);
         emit Transfer(account, address(0), amount);
         _burnCallback(account, amount, rAmount);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // PAUSABLE
+    // -----------------------------------------------------------------------------------------------------------------
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -240,7 +253,7 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         return rAmount.div(currentRate);
     }
 
-    function _reflect(uint256 tAmount, uint256 rAmount) internal {
+    function _reflect(uint256 tAmount, uint256 rAmount) internal whenNotPaused {
         _rTotal = _rTotal.sub(rAmount);
         _tFeeTotal = _tFeeTotal.add(tAmount);
         _reflectCallback(tAmount, rAmount);
@@ -325,7 +338,7 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         _decreaseTotalSupplyCallback(tAmount, rAmount);
     }
 
-    function _transfer(address sender, address recipient, uint256 amount) internal {
+    function _transfer(address sender, address recipient, uint256 amount) internal whenNotPaused {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
         FeeType feeType = _getFeeType(sender, recipient);
