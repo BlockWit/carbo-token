@@ -111,6 +111,7 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         _decreaseBalance(account, amount, rAmount);
         _decreaseTotalSupply(amount, rAmount);
         emit Transfer(account, address(0), amount);
+        _burnCallback(account, amount, rAmount);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -225,6 +226,7 @@ contract CarboToken is ICarboToken, Ownable, RecoverableFunds, WithCallback {
         uint256 rAmount = _getRAmount(tAmount, _getRate());
         _decreaseBalance(account, tAmount, rAmount);
         _reflect(tAmount, rAmount);
+        _reflectCallback(account, tAmount, rAmount);
     }
 
     function reflectionFromToken(uint256 tAmount) override external view returns (uint256) {

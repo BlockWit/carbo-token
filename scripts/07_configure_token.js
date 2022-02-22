@@ -52,7 +52,17 @@ async function deploy () {
   }
   {
     log(`Token. Set callback contract`);
-    const tx = await token.setCallback(DIVIDENDMANAGER_ADDRESS, {from: deployer});
+    const tx = await token.setCallbackContract(DIVIDENDMANAGER_ADDRESS, {from: deployer});
+    log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
+  }
+  {
+    log(`Token. Enable callback for INCREASE_BALANCE event`);
+    const tx = await token.setCallbackFunction(2, true, {from: deployer})
+    log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
+  }
+  {
+    log(`Token. Enable callback for DECREASE_BALANCE event`);
+    const tx = await token.setCallbackFunction(3, true, {from: deployer})
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {

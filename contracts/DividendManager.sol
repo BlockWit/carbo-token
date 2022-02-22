@@ -99,6 +99,8 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
 
     function reflectCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {}
 
+    function reflectCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {}
+
     function increaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {
         if (_excluded[account]) {
             _excludedSupply = _excludedSupply + rAmount;
@@ -118,6 +120,8 @@ contract DividendManager is ICallbackContract, Ownable, RecoverableFunds {
     function decreaseTotalSupplyCallback(uint256 tAmount, uint256 rAmount) override external onlyToken {}
 
     function transferCallback(address from, address to, uint256 tFromAmount, uint256 rFromAmount, uint256 tToAmount, uint256 rToAmount) override external onlyToken {}
+
+    function burnCallback(address account, uint256 tAmount, uint256 rAmount) override external onlyToken {}
 
     function _withdrawDividend(address account) internal {
         uint256 withdrawableDividend = withdrawableDividendOf(account);

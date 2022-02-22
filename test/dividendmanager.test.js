@@ -21,7 +21,9 @@ describe('DividendManager', async function () {
     token = await CarboToken.new({from: deployer});
     dividendManager = await DividendManager.new({from: deployer});
     busd = await ERC20Mock.new('BUSD', 'BUSD', owner, ether('1000000000'), {from: deployer});
-    await token.setCallback(dividendManager.address, {from: deployer});
+    await token.setCallbackContract(dividendManager.address, {from: deployer});
+    await token.setCallbackFunction(2, true, {from: deployer})
+    await token.setCallbackFunction(3, true, {from: deployer})
     await dividendManager.setToken(token.address, {from: deployer});
     await dividendManager.setBUSD(busd.address, {from: deployer});
     token.transferOwnership(owner, {from: deployer});

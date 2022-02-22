@@ -26,6 +26,8 @@ contract CallbackContractMock is ICallbackContract {
         reflectCallbackRAmount = rAmount;
     }
 
+    function reflectCallback(address account, uint256 tAmount, uint256 rAmount) external override {}
+
     function increaseBalanceCallback(address account, uint256 tAmount, uint256 rAmount) external override {
         increaseBalanceCallbackAccount = account;
         increaseBalanceCallbackTAmount = tAmount;
@@ -50,4 +52,6 @@ contract CallbackContractMock is ICallbackContract {
         transferCallbackTToAmount = tToAmount;
         transferCallbackRToAmount = rToAmount;
     }
+
+    function burnCallback(address account, uint256 tAmount, uint256 rAmount) external override {}
 }
