@@ -55,7 +55,7 @@ EXODUS does not support BEP20, but provides the ability to export the private ke
 ### Contracts
 * work in progress
 
-## Test network configuration (BSC Testnet)
+## Test configuration (BSC Mainnet)
 ### Contracts deployed
 * [CARBOToken](https://bscscan.com/token/0x974a5666f371195672968d55954e05FbE586089d)
 * [DividendManager](https://bscscan.com/address/0x074Cb27e5D5Bf86442Dc31ea19cf302F7B5c8AD5)
