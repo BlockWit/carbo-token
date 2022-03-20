@@ -11,21 +11,23 @@ async function deploy () {
   const CROWDSALE_ADDRESS = args[args.findIndex(argName => argName === '--sale') + 1];
   const WALLET_ADDRESS = args[args.findIndex(argName => argName === '--wallet') + 1];
   const ADDRESSES = {
-    admin: '0x4A1C819e0158051237A15Ec4E5fD7bB490ADcea0',
-    team: '0xBE9B3dda6798A05b7CA6B12ed4c1D6243D8edA03',
-    buyback: '0xb7f498F6Fb9991EB7e91AE9EBE107Ec3EF7348E3',
-    treasury: '0x2BBf69dc0b8B12439f9F587BeEb60Bd86b97615F',
-    liquidity: '0x09622f5647651342C6eF1D674b7e30042c22e0d7',
-    marketing: '0x56E6D5baCCf60b5710B4E06A082CF666267d7cC9',
-    reserve: '0xa03031cc5bbb3B3a5dDd9dfB9CEEAab3d22bC8c9'
+    admin: '0x1425234cc5F42D2aAa2db1E2088CeC81E6caaF9E',
+    team: '0x924bFf61da5B81ecCc58607e3CB76A00aa6201cf',
+    buyback: '0x5FF5763964aC663Ec6CDcCf9836306301AED64C0',
+    treasury: '0xA7E8cB251033990cFFC3C10131f35BB122b321fB',
+    liquidity: '0x8441220eFF1370A24f1400f79C06558c3C5A48fa',
+    marketing: '0xa48d081d79FB257eEA71791B99D535858Ad8B1DC',
+    reserve: '0xA5B10a6A78dF992Fd06587400378010BD248278b',
+    airdrop: '0x1D2d2B2DddA02500B97f08f361AFb17751a27728'
   };
   const BALANCES = {
-    crowdsale:          ether('300000000'),
-    team:               ether('50000000'),
-    marketingLocked:    ether('12500000'),
-    marketingUnlocked:  ether('12500000'),
-    reserve:            ether('25000000'),
-    liquidity:          ether('100000000')
+    crowdsale:          ether('250000000'),
+    team:               ether( '50000000'),
+    marketingLocked:    ether( '20000000'),
+    marketingUnlocked:  ether( '20000000'),
+    reserve:            ether( '25000000'),
+    liquidity:          ether('100000000'),
+    airdrop:            ether( '35000000')
   }
 
   const token = await CarboToken.at(TOKEN_ADDRESS);
@@ -48,6 +50,11 @@ async function deploy () {
   {
     log(`Token. Send liquidity tokens`);
     const tx = await token.transfer(ADDRESSES.liquidity, BALANCES.liquidity, {from: deployer});
+    log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
+  }
+  {
+    log(`Token. Send airdrop tokens`);
+    const tx = await token.transfer(ADDRESSES.airdrop, BALANCES.airdrop, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
