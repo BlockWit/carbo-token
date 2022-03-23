@@ -8,5 +8,8 @@ pragma solidity ^0.8.0;
 interface IDividendManager {
 
     function distributeDividends(uint256 amount) external;
+    function setBUSD(address _busd) external;
+    function setToken(address _token) external;
+    function excludeFromDividends(address account) external;
 
 }

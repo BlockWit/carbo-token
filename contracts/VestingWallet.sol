@@ -26,11 +26,11 @@ contract VestingWallet is IVestingWallet, Ownable, RecoverableFunds {
     event Deposit(uint256 schedule, address account, uint256 tokens);
     event Withdrawal(address account, uint256 tokens);
 
-    function setToken(address tokenAddress) public onlyOwner {
+    function setToken(address tokenAddress) public override onlyOwner {
         token = IERC20(tokenAddress);
     }
 
-    function setVestingSchedule(uint256 id, uint256 start, uint256 duration, uint256 interval) public onlyOwner returns (bool) {
+    function setVestingSchedule(uint256 id, uint256 start, uint256 duration, uint256 interval) public override onlyOwner returns (bool) {
         return schedules.set(id, Schedules.Schedule(start, duration, interval));
     }
 
