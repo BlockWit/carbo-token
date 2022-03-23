@@ -13,7 +13,7 @@ async function deploy () {
   const WALLET_ADDRESS = args[args.findIndex(argName => argName === '--wallet') + 1];
 
   const PRICE = ether('10000');
-  const FUNDRAISING_WALLET = '0x4A1C819e0158051237A15Ec4E5fD7bB490ADcea0';
+  const FUNDRAISING_WALLET = '0x1425234cc5F42D2aAa2db1E2088CeC81E6caaF9E';
   const STAGE1 = {
     id: 0,
     start: time.duration.seconds(Math.floor(new Date('March 20 2022 11:00 UTC') / 1000).toString()),

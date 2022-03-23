@@ -1,50 +1,52 @@
+const CarboToken = artifacts.require('CarboToken');
+const CrowdSale = artifacts.require('CrowdSale');
 const DividendManager = artifacts.require('DividendManager');
+const FeeManager = artifacts.require('FeeManager');
+const VestingWallet = artifacts.require('VestingWallet');
 const { logger } = require('./util');
-const ADDRESSES = require('./addresses');
+const { admin: ADMINISTRATOR_ADDRESS } = require('./addresses');
 
 async function deploy () {
   const { log } = logger(await web3.eth.net.getNetworkType());
   const [deployer] = await web3.eth.getAccounts();
   const args = process.argv.slice(2);
   const TOKEN_ADDRESS = args[args.findIndex(argName => argName === '--token') + 1];
-  const BUSD_ADDRESS = args[args.findIndex(argName => argName === '--busd') + 1];
   const CROWDSALE_ADDRESS = args[args.findIndex(argName => argName === '--sale') + 1];
   const WALLET_ADDRESS = args[args.findIndex(argName => argName === '--wallet') + 1];
   const DIVIDENDMANAGER_ADDRESS = args[args.findIndex(argName => argName === '--divs') + 1];
-  const SWAP_PAIR_ADDRESS = args[args.findIndex(argName => argName === '--pair') + 1];
+  const FEEMANAGER_ADDRESS = args[args.findIndex(argName => argName === '--fees') + 1];
 
+  const token = await CarboToken.at(TOKEN_ADDRESS);
+  const sale = await CrowdSale.at(CROWDSALE_ADDRESS);
   const dividendManager = await DividendManager.at(DIVIDENDMANAGER_ADDRESS);
+  const feeManager = await FeeManager.at(FEEMANAGER_ADDRESS);
+  const wallet = await VestingWallet.at(WALLET_ADDRESS);
   {
-    log(`DividendManager. Set token.`);
-    const tx = await dividendManager.setToken(TOKEN_ADDRESS, {from: deployer});
-    log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
-  }
-  {
-    log(`DividendManager. Set busd.`);
-    const tx = await dividendManager.setBUSD(BUSD_ADDRESS, {from: deployer});
+    log(`Token. Transfer ownership`);
+    const tx = await token.transferOwnership(ADMINISTRATOR_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
-    log(`DividendManager. Exclude crowdsale address from dividends`);
-    const tx = await dividendManager.excludeFromDividends(CROWDSALE_ADDRESS, {from: deployer});
+    log(`CrowdSale. Transfer ownership`);
+    const tx = await sale.transferOwnership(ADMINISTRATOR_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
-    log(`DividendManager. Exclude vesting wallet address from dividends`);
-    const tx = await dividendManager.excludeFromDividends(WALLET_ADDRESS, {from: deployer});
+    log(`DividendManager. Transfer ownership`);
+    const tx = await dividendManager.transferOwnership(ADMINISTRATOR_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
   {
-    log(`DividendManager. Exclude swap pair address from dividends`);
-    const tx = await dividendManager.excludeFromDividends(SWAP_PAIR_ADDRESS, {from: deployer});
+    log(`FeeManager. Transfer ownership`);
+    const tx = await feeManager.transferOwnership(ADMINISTRATOR_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
-  log(`DividendManager. Exclude administrative addresses from dividends`);
-  for (const key in ADDRESSES) {
-    log(`${key}: ${ADDRESSES[key]}`);
-    const tx = await dividendManager.excludeFromDividends(ADDRESSES[key], {from: deployer});
+  {
+    log(`VestingWallet. Transfer ownership`);
+    const tx = await wallet.transferOwnership(ADMINISTRATOR_ADDRESS, {from: deployer});
     log(`Result: successful tx: @tx{${tx.receipt.transactionHash}}`);
   }
+
 }
 
 module.exports = async function main (callback) {
