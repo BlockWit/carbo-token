@@ -10,6 +10,8 @@ import "./interfaces/IDividendManager.sol";
 import "./interfaces/IFeeManager.sol";
 import "./interfaces/ICarboToken.sol";
 import "./interfaces/ICrowdSale.sol";
+import "./interfaces/IOwnable.sol";
+import "./interfaces/IWithCallback.sol";
 
 contract Configurator is RecoverableFunds {
 
@@ -151,6 +153,7 @@ contract Configurator is RecoverableFunds {
             token.setTaxExempt(addresses.buyback, true);
 
             token.transferFrom(msg.sender, address(this), token.balanceOf(msg.sender));
+            IOwnable(_token).transferOwnership(msg.sender);
         }
 
         // -------------------------------------------------------------------------------------------------------------
@@ -165,6 +168,7 @@ contract Configurator is RecoverableFunds {
             token.approve(_wallet, amounts.team + amounts.marketingLocked);
             wallet.deposit(2, addresses.team, amounts.team);
             wallet.deposit(3, addresses.marketing, amounts.marketingLocked);
+            IOwnable(_wallet).transferOwnership(msg.sender);
         }
 
         // -------------------------------------------------------------------------------------------------------------
@@ -191,6 +195,7 @@ contract Configurator is RecoverableFunds {
             sale.setPrice(PRICE);
             sale.setStage(0, STAGE.start, STAGE.end, STAGE.bonus, STAGE.minInvestmentLimit, STAGE.maxInvestmentLimit, STAGE.hardcapInTokens, STAGE.vestingSchedule, STAGE.invested, STAGE.tokensSold, STAGE.whitelist);
             token.transfer(_sale, amounts.sale);
+            IOwnable(_sale).transferOwnership(msg.sender);
         }
 
         // -------------------------------------------------------------------------------------------------------------
@@ -213,6 +218,7 @@ contract Configurator is RecoverableFunds {
             divs.excludeFromDividends(addresses.airdrop);
             divs.excludeFromDividends(addresses.treasury);
             divs.excludeFromDividends(addresses.buyback);
+            IOwnable(_divs).transferOwnership(msg.sender);
         }
 
         // -------------------------------------------------------------------------------------------------------------
@@ -222,6 +228,7 @@ contract Configurator is RecoverableFunds {
         {
             fees.setDividendManager(_divs);
             fees.setFeeAddresses(addresses.buyback, addresses.treasury, addresses.liquidity);
+            IOwnable(_fees).transferOwnership(msg.sender);
         }
 
         // -------------------------------------------------------------------------------------------------------------
